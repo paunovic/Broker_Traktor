@@ -140,6 +140,7 @@ end
 
 function addon:OnMinimapUpdateTracking()
     self:CheckTracking()
+    self:Publish("REDRAW_INTERFACE")
 end
 
 function addon:OnPlayerResurrect()
