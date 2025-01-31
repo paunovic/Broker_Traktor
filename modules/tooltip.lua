@@ -68,7 +68,7 @@ function tooltip:Populate()
     for i = 1, #spells do
         spellId, name, icon = unpack(spells[i])
         if PersistentStorage["autoTracking"][mapId] == spellId then
-            textColor = "|cFF00FF00"
+            textColor = "|cFF75FF75"
         else
             textColor = "|cFFFFFFFF"
         end
@@ -100,11 +100,14 @@ function tooltip:GetLineScript(spellId)
             if PersistentStorage["autoTracking"][mapId] ~= nil then
                 if PersistentStorage["autoTracking"][mapId] == spellId then
                     PersistentStorage["autoTracking"][mapId] = nil
+                    print("|cFFBBBBBBTraktor: |cFFFCBA03"..GetZoneText().."|cFFFFFFFF smart tracking off")
                 else
                     PersistentStorage["autoTracking"][mapId] = spellId
+                    print("|cFFBBBBBBTraktor: |cFFFCBA03"..GetZoneText().."|cFFFFFFFF smart tracking on (|cFF75FF75"..C_Spell.GetSpellName(spellId).."|cFFFFFFFF)")
                 end
             else
                 PersistentStorage["autoTracking"][mapId] = spellId
+                print("|cFFBBBBBBTraktor: |cFFFCBA03"..GetZoneText().."|cFFFFFFFF smart tracking on (|cFF75FF75"..C_Spell.GetSpellName(spellId).."|cFFFFFFFF)")
             end
             self:Redraw()
         end
