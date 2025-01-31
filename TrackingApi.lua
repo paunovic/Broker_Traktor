@@ -83,5 +83,5 @@ function TrackingApi:GetActiveTrackingId()
         end
     end
 
-    return nil
+    return 0
 end

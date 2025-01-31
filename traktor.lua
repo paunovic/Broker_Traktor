@@ -1,42 +1,35 @@
-local name, addon = ...
-LibStub("AceAddon-3.0"):NewAddon(addon, name, "AceEvent-3.0", "LibPubSub-1.0")
+local addonName, addon = ...
+LibStub("AceAddon-3.0"):NewAddon(addon, addonName, "AceEvent-3.0", "LibPubSub-1.0")
 
 -- localise global variables
 local _G = _G
 local GetNumSpellTabs, GetSpellCooldown, UnitIsDeadOrGhost = _G.GetNumSpellTabs, _G.GetSpellCooldown, _G.UnitIsDeadOrGhost
-local After, NewTimer, GetTime = _G.C_Timer.After, _G.C_Timer.NewTimer, _G.GetTime
 
 function addon:OnInitialize()
     self.spells = {}
     self.trackingId = nil
     self.cooldownTimer = nil
+end
 
+
+function addon:OnEnable()
     if not PersistentStorage then
+        print("|cFFBBBBBBTraktor: ".."|cFFFFFFFFInitializing...")
+
         PersistentStorage = {
-            lastTrackingId = nil,
-            autoTracking = {}
+            smartTracking = {}
         }
     end
 
-    self:RegisterEvent("ADDON_LOADED", "UpdateSpells")
+    self:RegisterEvent("MINIMAP_UPDATE_TRACKING", "OnMinimapUpdateTracking")
     self:RegisterEvent("SPELLS_CHANGED", "UpdateSpells")
-    self:RegisterEvent("PLAYER_ENTERING_WORLD", "UpdateSpells")
     self:RegisterEvent("SKILL_LINES_CHANGED", "UpdateSpells")
+    self:RegisterEvent("PLAYER_ENTERING_WORLD", "UpdateSpells")
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", "OnUnitEvent")
     self:RegisterEvent("UNIT_AURA", "OnUnitEvent")
-    self:RegisterEvent("MINIMAP_UPDATE_TRACKING", "OnMinimapUpdateTracking")
     self:RegisterEvent("PLAYER_ALIVE", "OnPlayerResurrect")
     self:RegisterEvent("PLAYER_UNGHOST", "OnPlayerResurrect")
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "OnZoneChangedNewArea")
-    self:RegisterEvent("PLAYER_LOGOUT", "OnPlayerLogout")
-
-    if PersistentStorage["lastTrackingId"] ~= nil then
-        self:SetTracking(PersistentStorage["lastTrackingId"])
-    end
-end
-
-function addon:OnEnable()
-    self:UpdateSpells()
 end
 
 function addon:GetSpells()
@@ -48,7 +41,7 @@ function addon:CheckTracking()
 
     if not activeTrackingId then
         -- wait a second in case we"re (supposed to be) dead, event order is unpredictable
-        After(1, function()
+        C_Timer.After(1, function()
             local activeTrackingId = TrackingApi:GetActiveTrackingId()
             if self.trackingId ~= activeTrackingId then
                 self:TriggerTrackingChanged()
@@ -119,6 +112,8 @@ function addon:UpdateSpells()
     end)
 
     self:CheckTracking()
+
+    self:Publish("REDRAW_INTERFACE")
 end
 
 function addon:SetTracking(spellId)
@@ -132,21 +127,13 @@ function addon:SetTracking(spellId)
     elseif spellId ~= TrackingApi:GetActiveTrackingId() then
         local cooldownStart, cooldownDuration = GetSpellCooldown(spellId)
         if cooldownStart > 0 and cooldownDuration > 0 then
-            self.cooldownTimer = NewTimer(0.01 + cooldownStart + cooldownDuration - GetTime(), function()
+            self.cooldownTimer = C_Timer.NewTimer(0.01 + cooldownStart + cooldownDuration - GetTime(), function()
                 self:SetTracking(spellId)
             end)
         else
             CastSpellByID(spellId)
         end
     end
-end
-
-function addon:GetZoneId()
-    local mapId = C_Map.GetBestMapForUnit("player")
-    if not mapId then
-        mapId = GetRealZoneText()
-    end
-    return mapId
 end
 
 function addon:OnUnitEvent(event, unit)
@@ -160,22 +147,21 @@ function addon:OnMinimapUpdateTracking()
 end
 
 function addon:OnPlayerResurrect()
-    if self.tracking and not UnitIsDeadOrGhost("player") then
-        local tracking = self.tracking
-        self.tracking = nil
-        self:SetTracking(tracking)
+    if self.trackingId and not UnitIsDeadOrGhost("player") then
+        local trackingId = self.trackingId
+        self.trackingId = nil
+        self:SetTracking(trackingId)
     end
 end
 
 function addon:OnZoneChangedNewArea()
-    mapId = self:GetZoneId()
+    zoneText = GetRealZoneText()
 
-    local autoTrackingSpellId = PersistentStorage["autoTracking"][mapId]
-    if autoTrackingSpellId ~= nil then
-        self:SetTracking(autoTrackingSpellId)
+    local smartTrackingSpellId = PersistentStorage["smartTracking"][zoneText]
+
+    if smartTrackingSpellId then
+        self:SetTracking(smartTrackingSpellId)
     end
-end
 
-function addon:OnPlayerLogout()
-    PersistentStorage["lastTrackingId"] = TrackingApi:GetActiveTrackingId()
+    self:Publish("REDRAW_INTERFACE")
 end

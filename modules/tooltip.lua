@@ -11,30 +11,31 @@ function tooltip:OnEnable()
     addon:Subscribe("MOUSE_ENTER", self, "Show")
     addon:Subscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
     addon:Subscribe("ZONE_CHANGED_NEW_AREA", self, "OnZoneChangedNewArea")
+    addon:Subscribe("REDRAW_INTERFACE", self, "Redraw")
 end
 
 function tooltip:OnDisable()
     self:Hide()
+
+    addon:Unsubscribe("REDRAW_INTERFACE", self, "Redraw")
     addon:Unsubscribe("ZONE_CHANGED_NEW_AREA", self, "OnZoneChangedNewArea")
     addon:Unsubscribe("MOUSE_ENTER", self, "Show")
     addon:Unsubscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
 end
 
 function tooltip:Redraw()
-    self.tip:Clear()
-    self:Populate()
+    if self.tip then
+        self.tip:Clear()
+        self:Populate()
+    end
 end
 
 function tooltip:OnTrackingChanged()
-    if self.tip then
-        self:Redraw()
-    end
+    self:Redraw()
 end
 
 function tooltip:OnZoneChangedNewArea()
-    if self.tip then
-        self:Redraw()
-    end
+    self:Redraw()
 end
 
 function tooltip:Show(anchor)
@@ -60,14 +61,19 @@ function tooltip:Populate()
     local trackingId = TrackingApi:GetActiveTrackingId()
     local spells = addon:GetSpells()
 
-    local mapId = addon:GetZoneId()
+    local zoneText = GetRealZoneText()
 
-    self:AddLine(0, nil, MINIMAP_TRACKING_NONE, not trackingId, "|cFFFFFFFF")
+    local textColor = "|cFFFFFFFF"
+    if PersistentStorage["smartTracking"][zoneText] == 0 then
+        textColor = "|cFF75FF75"
+    end
+    self:AddLine(0, nil, MINIMAP_TRACKING_NONE, trackingId == 0, textColor)
 
     local spellId, name, icon, textColor
+
     for i = 1, #spells do
         spellId, name, icon = unpack(spells[i])
-        if PersistentStorage["autoTracking"][mapId] == spellId then
+        if PersistentStorage["smartTracking"][zoneText] == spellId then
             textColor = "|cFF75FF75"
         else
             textColor = "|cFFFFFFFF"
@@ -98,24 +104,30 @@ end
 function tooltip:GetLineScript(spellId)
     return function()
         if IsShiftKeyDown() then
-            local mapId = addon:GetZoneId()
+            local zoneText = GetRealZoneText()
 
-            if PersistentStorage["autoTracking"][mapId] ~= nil then
-                if PersistentStorage["autoTracking"][mapId] == spellId then
-                    PersistentStorage["autoTracking"][mapId] = nil
-                    print("|cFFBBBBBBTraktor: |cFFFCBA03"..GetZoneText().."|cFFFFFFFF smart tracking off")
-                else
-                    PersistentStorage["autoTracking"][mapId] = spellId
-                    print("|cFFBBBBBBTraktor: |cFFFCBA03"..GetZoneText().."|cFFFFFFFF smart tracking on (|cFF75FF75"..C_Spell.GetSpellName(spellId).."|cFFFFFFFF)")
-                end
-            else
-                PersistentStorage["autoTracking"][mapId] = spellId
-                print("|cFFBBBBBBTraktor: |cFFFCBA03"..GetZoneText().."|cFFFFFFFF smart tracking on (|cFF75FF75"..C_Spell.GetSpellName(spellId).."|cFFFFFFFF)")
+            local spellName = "Not Tracking"
+            if spellId and spellId ~= 0 then
+                spellName = C_Spell.GetSpellName(spellId)
             end
 
-            self:Redraw()
+            if PersistentStorage["smartTracking"][zoneText] ~= nil then
+                if PersistentStorage["smartTracking"][zoneText] == spellId then
+                    PersistentStorage["smartTracking"][zoneText] = nil
+                    print("|cFFBBBBBBTraktor |cFFFCBA03"..zoneText.."|cFFFFFFFF smart tracking off")
+                    addon:Publish("REDRAW_INTERFACE")
+                    return
+                else
+                    PersistentStorage["smartTracking"][zoneText] = spellId
+                    print("|cFFBBBBBBTraktor: |cFFFCBA03"..zoneText.."|cFFFFFFFF smart tracking on (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+                end
+            else
+                PersistentStorage["smartTracking"][zoneText] = spellId
+                print("|cFFBBBBBBTraktor: |cFFFCBA03"..zoneText.."|cFFFFFFFF smart tracking on (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+            end
         end
 
         addon:SetTracking(spellId)
+        addon:Publish("TRACKING_CHANGED")
     end
 end

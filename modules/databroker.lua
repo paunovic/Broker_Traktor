@@ -13,31 +13,33 @@ end
 
 function broker:OnEnable()
     addon:Subscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
-    self:OnTrackingChanged()
+    addon:Subscribe("REDRAW_INTERFACE", self, "OnRedrawInterface")
 end
 
 function broker:OnDisable()
+    addon:Unsubscribe("REDRAW_INTERFACE", self, "OnRedrawInterface")
     addon:Unsubscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
 end
 
 function broker:OnTrackingChanged()
     local spellId = TrackingApi:GetActiveTrackingId()
+    local zoneText = GetRealZoneText()
 
-    if not spellId then
-        self:SetValue("Not Tracking", ICON_ABILITY_TRACKING)
+    local textColor = "|cFFFFFFFF"
+    if PersistentStorage["smartTracking"][zoneText] == spellId then
+        textColor = "|cFF75FF75"
+    end
+
+    if not spellId or spellId == 0 then
+        self:SetValue(textColor.."Not Tracking", ICON_ABILITY_TRACKING)
     else
-        name, icon, active = TrackingApi:GetTrackingInfo(spellId)
-
-        local mapId = addon:GetZoneId()
-
-        if PersistentStorage["autoTracking"][mapId] == spellId then
-            textColor = "|cFF75FF75"
-        else
-            textColor = "|cFFFFFFFF"
-        end
-
+        local name, icon, active = TrackingApi:GetTrackingInfo(spellId)
         self:SetValue(textColor..name, icon)
     end
+end
+
+function broker:OnRedrawInterface()
+    self:OnTrackingChanged()
 end
 
 function broker:SetValue(value, icon)
