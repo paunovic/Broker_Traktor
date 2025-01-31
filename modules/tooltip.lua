@@ -1,9 +1,7 @@
-local name, addon = ...
+local addonName, addon = ...
 local tooltip = addon:NewModule("Tooltip")
 
--- localise global variables
 local _G = _G
-local MINIMAP_TRACKING_NONE = _G.MINIMAP_TRACKING_NONE
 
 local LibQTip = LibStub("LibQTip-1.0")
 
@@ -42,7 +40,7 @@ function tooltip:Show(anchor)
     self:Hide()
 
     if self.enabledState then
-        self.tip = LibQTip:Acquire(name .. "Tooltip", 3, "LEFT", "LEFT")
+        self.tip = LibQTip:Acquire(addonName.."Tooltip", 3, "LEFT", "LEFT")
         self.tip.OnRelease = function() self.tip = nil end
         self.tip:SetAutoHideDelay(0.1, anchor)
         self.tip:SmartAnchorTo(anchor)
@@ -61,40 +59,41 @@ function tooltip:Populate()
     local trackingId = TrackingApi:GetActiveTrackingId()
     local spells = addon:GetSpells()
 
-    local zoneText = GetRealZoneText()
+    local zoneText = _G.GetRealZoneText()
 
     local textColor = "|cFFFFFFFF"
     if PersistentStorage["smartTracking"][zoneText] == 0 then
         textColor = "|cFF75FF75"
     end
-    self:AddLine(0, nil, MINIMAP_TRACKING_NONE, trackingId == 0, textColor)
+    self:AddLine(0, nil, _G.MINIMAP_TRACKING_NONE, trackingId == 0, textColor)
 
-    local spellId, name, icon, textColor
+    local spellId, spellName, spellIcon
 
     for i = 1, #spells do
-        spellId, name, icon = unpack(spells[i])
+        spellId, spellName, spellIcon = unpack(spells[i])
         if PersistentStorage["smartTracking"][zoneText] == spellId then
             textColor = "|cFF75FF75"
         else
             textColor = "|cFFFFFFFF"
         end
-        self:AddLine(spellId, icon, name, spellId == trackingId, textColor)
+        self:AddLine(spellId, spellIcon, spellName, spellId == trackingId, textColor)
     end
 end
 
-function tooltip:AddLine(spellId, icon, name, active, textColor)
+function tooltip:AddLine(spellId, spellIcon, spellName, spellActive, textColor)
     local line = self.tip:AddLine()
     local radio = "|T:0|t"
 
-    if active then
+    if spellActive then
         radio = "|TInterface\\Buttons\\UI-RadioButton:8:8:0:0:64:16:19:28:3:12|t"
     end
 
     self.tip:SetCell(line, 1, radio)
-    if icon then
-        self.tip:SetCell(line, 2, "|T" .. icon .. ":14|t")
+
+    if spellIcon then
+        self.tip:SetCell(line, 2, "|T"..spellIcon..":14|t")
     end
-    self.tip:SetCell(line, 3, textColor .. name)
+    self.tip:SetCell(line, 3, textColor..spellName)
 
     self.tip:SetLineScript(line, "OnMouseUp", self:GetLineScript(spellId))
 
@@ -104,7 +103,7 @@ end
 function tooltip:GetLineScript(spellId)
     return function()
         if IsShiftKeyDown() then
-            local zoneText = GetRealZoneText()
+            local zoneText = _G.GetRealZoneText()
 
             local spellName = "Not Tracking"
             if spellId and spellId ~= 0 then

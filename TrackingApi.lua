@@ -1,25 +1,22 @@
 -- tracking spells api
 
+local _G = _G
+
 TrackingApi = {}
 TrackingApi.SpellInfo = {}
 TrackingApi.SpellIcons = {}
 
-function TrackingApi:BuildSpellList(keywords)
-    if not keywords then
-        keywords = {"Track", "Find"}
-    end
-
-    local count = 0
+function TrackingApi:BuildSpellList()
+    local keywords = {"Track", "Find"}
     local tracked
 
     for tab=1,4 do
-        local _, _, offset, numSpells = GetSpellTabInfo(tab);
+        local _, _, offset, numSpells = _G.GetSpellTabInfo(tab);
 
         for i = offset + 1, offset + numSpells do
-            local spellIcon = GetSpellBookItemTexture(i, BOOKTYPE_SPELL);
-
-            local spellName = GetSpellBookItemName(i, BOOKTYPE_SPELL);
-            local _, spellId = GetSpellBookItemInfo(i, BOOKTYPE_SPELL)
+            local spellIcon = _G.GetSpellBookItemTexture(i, BOOKTYPE_SPELL);
+            local spellName = _G.GetSpellBookItemName(i, BOOKTYPE_SPELL);
+            local _, spellId = _G.GetSpellBookItemInfo(i, BOOKTYPE_SPELL)
 
             for _, keyword in ipairs(keywords) do
                 tracked = spellName:match(keyword.." (%a+)")
@@ -29,16 +26,18 @@ function TrackingApi:BuildSpellList(keywords)
             end
 
             if tracked then
-                self.SpellInfo[spellId] = { name=spellName, icon= spellIcon }
+                self.SpellInfo[spellId] = {
+                    name = spellName,
+                    icon = spellIcon
+                }
                 self.SpellIcons[spellIcon] = spellId
-                count = count + 1
             end
         end
     end
 end
 
 function TrackingApi:GetCurrentTracking()
-    local icon = GetTrackingTexture()
+    local icon = _G.GetTrackingTexture()
 
     if not icon then
         return
@@ -49,14 +48,14 @@ function TrackingApi:GetCurrentTracking()
     return spellId, spell.name, spell.icon
 end
 
-function SetTracking(id, _)
+function TrackingApi:SetTracking(id, _)
     local spell = self.SpellInfo[id]
 
     if not spell then
         error("Invalid spell ID: " .. id)
     end
 
-    CastSpellByName(spell["name"])
+    _G.CastSpellByName(spell["name"])
 end
 
 function TrackingApi:IsTracking(spellId)
@@ -76,9 +75,9 @@ function TrackingApi:GetTrackingInfo(spellId)
 end
 
 function TrackingApi:GetActiveTrackingId()
-    for spellId, spell in pairs(self.SpellInfo) do
-        name, texture, active = TrackingApi:GetTrackingInfo(spellId)
-        if active then
+    for spellId, _ in pairs(self.SpellInfo) do
+        local _, _, spellActive = TrackingApi:GetTrackingInfo(spellId)
+        if spellActive then
             return spellId
         end
     end

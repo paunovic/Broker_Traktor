@@ -1,9 +1,7 @@
 local addonName, addon = ...
 LibStub("AceAddon-3.0"):NewAddon(addon, addonName, "AceEvent-3.0", "LibPubSub-1.0")
 
--- localise global variables
 local _G = _G
-local GetNumSpellTabs, GetSpellCooldown, UnitIsDeadOrGhost = _G.GetNumSpellTabs, _G.GetSpellCooldown, _G.UnitIsDeadOrGhost
 
 function addon:OnInitialize()
     self.spells = {}
@@ -39,25 +37,23 @@ end
 function addon:CheckTracking()
     local activeTrackingId = TrackingApi:GetActiveTrackingId()
 
-    if not activeTrackingId then
-        -- wait a second in case we"re (supposed to be) dead, event order is unpredictable
+    if activeTrackingId == 0 then
+        -- wait a second in case we're (supposed to be) dead
         C_Timer.After(1, function()
-            local activeTrackingId = TrackingApi:GetActiveTrackingId()
+            activeTrackingId = TrackingApi:GetActiveTrackingId()
             if self.trackingId ~= activeTrackingId then
-                self:TriggerTrackingChanged()
+                if not _G.UnitIsDeadOrGhost("player") then
+                    self.trackingId = TrackingApi:GetActiveTrackingId()
+                end
+                self:Publish("TRACKING_CHANGED")
             end
         end)
     elseif self.trackingId ~= activeTrackingId then
-        self:TriggerTrackingChanged()
+        if not _G.UnitIsDeadOrGhost("player") then
+            self.trackingId = TrackingApi:GetActiveTrackingId()
+        end
+        self:Publish("TRACKING_CHANGED")
     end
-end
-
-function addon:TriggerTrackingChanged()
-    if not UnitIsDeadOrGhost("player") then
-        self.trackingId = TrackingApi:GetActiveTrackingId()
-    end
-
-    self:Publish("TRACKING_CHANGED")
 end
 
 function addon:UpdateSpells()
@@ -94,16 +90,16 @@ function addon:UpdateSpells()
 
     -- sort spells table based on the order in the spells list
     table.sort(self.spells, function(a, b)
-        spell_id_a, _, _ = unpack(a)
-        spell_id_b, _, _ = unpack(b)
+        local spellIdA, _, _ = unpack(a)
+        local spellIdB, _, _ = unpack(b)
 
         local aIndex, bIndex
 
         for i, v in ipairs(spells) do
-            if v == spell_id_a then
+            if v == spellIdA then
                 aIndex = i
             end
-            if v == spell_id_b then
+            if v == spellIdB then
                 bIndex = i
             end
         end
@@ -123,20 +119,20 @@ function addon:SetTracking(spellId)
     end
 
     if not spellId or spellId == 0 then
-        CancelTrackingBuff()
+        _G.CancelTrackingBuff()
     elseif spellId ~= TrackingApi:GetActiveTrackingId() then
-        local cooldownStart, cooldownDuration = GetSpellCooldown(spellId)
+        local cooldownStart, cooldownDuration = _G.GetSpellCooldown(spellId)
         if cooldownStart > 0 and cooldownDuration > 0 then
-            self.cooldownTimer = C_Timer.NewTimer(0.01 + cooldownStart + cooldownDuration - GetTime(), function()
+            self.cooldownTimer = C_Timer.NewTimer(0.01 + cooldownStart + cooldownDuration - _G.GetTime(), function()
                 self:SetTracking(spellId)
             end)
         else
-            CastSpellByID(spellId)
+            _G.CastSpellByID(spellId)
         end
     end
 end
 
-function addon:OnUnitEvent(event, unit)
+function addon:OnUnitEvent(_, unit)
     if unit == "player" then
         self:CheckTracking()
     end
@@ -147,7 +143,7 @@ function addon:OnMinimapUpdateTracking()
 end
 
 function addon:OnPlayerResurrect()
-    if self.trackingId and not UnitIsDeadOrGhost("player") then
+    if self.trackingId and not _G.UnitIsDeadOrGhost("player") then
         local trackingId = self.trackingId
         self.trackingId = nil
         self:SetTracking(trackingId)
@@ -155,7 +151,7 @@ function addon:OnPlayerResurrect()
 end
 
 function addon:OnZoneChangedNewArea()
-    zoneText = GetRealZoneText()
+    local zoneText = _G.GetRealZoneText()
 
     local smartTrackingSpellId = PersistentStorage["smartTracking"][zoneText]
 

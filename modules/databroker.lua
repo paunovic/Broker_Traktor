@@ -1,14 +1,13 @@
-local name, addon = ...
+local addonName, addon = ...
 local broker = addon:NewModule("DataBroker")
 
--- localise global variables
 local _G = _G
 local ICON_ABILITY_TRACKING = 132328
 
 function broker:OnInitialize()
     self.type = "data source"
 
-    LibStub("LibDataBroker-1.1"):NewDataObject(name, self)
+    LibStub("LibDataBroker-1.1"):NewDataObject(addonName, self)
 end
 
 function broker:OnEnable()
@@ -23,7 +22,7 @@ end
 
 function broker:OnTrackingChanged()
     local spellId = TrackingApi:GetActiveTrackingId()
-    local zoneText = GetRealZoneText()
+    local zoneText = _G.GetRealZoneText()
 
     local textColor = "|cFFFFFFFF"
     if PersistentStorage["smartTracking"][zoneText] == spellId then
@@ -33,8 +32,8 @@ function broker:OnTrackingChanged()
     if not spellId or spellId == 0 then
         self:SetValue(textColor.."Not Tracking", ICON_ABILITY_TRACKING)
     else
-        local name, icon, active = TrackingApi:GetTrackingInfo(spellId)
-        self:SetValue(textColor..name, icon)
+        local spellName, spellIcon, spellActive = TrackingApi:GetTrackingInfo(spellId)
+        self:SetValue(textColor..spellName, spellIcon)
     end
 end
 
