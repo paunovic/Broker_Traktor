@@ -147,11 +147,9 @@ function addon:OnMinimapUpdateTracking()
 end
 
 function addon:OnPlayerResurrect()
-    print("RESSURECT", self.trackingId, UnitIsDeadOrGhost("player"))
     if self.trackingId and not UnitIsDeadOrGhost("player") then
         local trackingId = self.trackingId
         self.trackingId = nil
-        print("SET TRACKING", trackingId)
         self:SetTracking(trackingId)
     end
 end
