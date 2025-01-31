@@ -1,0 +1,15 @@
+## Interface: 11505
+## Title: Broker: Traktor
+## Author: Rsrx
+## Version: 1.0.1
+## Notes: Simple minimap tracking display for Classic Fresh with tracking selection in its tooltip.
+## OptionalDeps: LibStub, Ace3, LibPubSub-1.0, LibQTip-1.0
+## SavedVariables: PersistentStorage
+
+embeds.xml
+
+traktor.lua
+TrackingApi.lua
+
+modules\databroker.lua
+modules\tooltip.lua
