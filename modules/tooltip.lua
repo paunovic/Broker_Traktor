@@ -60,7 +60,7 @@ function tooltip:Populate()
     local trackingId = TrackingApi:GetActiveTrackingId()
     local spells = addon:GetSpells()
 
-    local mapId = C_Map.GetBestMapForUnit("player")
+    local mapId = addon:GetZoneId()
 
     self:AddLine(0, nil, MINIMAP_TRACKING_NONE, not trackingId, "|cFFFFFFFF")
 
@@ -89,14 +89,17 @@ function tooltip:AddLine(spellId, icon, name, active, textColor)
         self.tip:SetCell(line, 2, "|T" .. icon .. ":14|t")
     end
     self.tip:SetCell(line, 3, textColor .. name)
+
     self.tip:SetLineScript(line, "OnMouseUp", self:GetLineScript(spellId))
+
     return line
 end
 
 function tooltip:GetLineScript(spellId)
     return function()
         if IsShiftKeyDown() then
-            local mapId = C_Map.GetBestMapForUnit("player")
+            local mapId = addon:GetZoneId()
+
             if PersistentStorage["autoTracking"][mapId] ~= nil then
                 if PersistentStorage["autoTracking"][mapId] == spellId then
                     PersistentStorage["autoTracking"][mapId] = nil
@@ -109,8 +112,10 @@ function tooltip:GetLineScript(spellId)
                 PersistentStorage["autoTracking"][mapId] = spellId
                 print("|cFFBBBBBBTraktor: |cFFFCBA03"..GetZoneText().."|cFFFFFFFF smart tracking on (|cFF75FF75"..C_Spell.GetSpellName(spellId).."|cFFFFFFFF)")
             end
+
             self:Redraw()
         end
+
         addon:SetTracking(spellId)
     end
 end

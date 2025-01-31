@@ -1,8 +1,8 @@
 ## Interface: 11505
 ## Title: Broker: Traktor
 ## Author: Rsrx
-## Version: 1.0.2
-## Notes: Simple minimap tracking display for Classic Fresh with tracking selection in its tooltip.
+## Version: 1.0.3
+## Notes: Simple minimap tracking display for WoW Classic with tracking selection in its tooltip.
 ## OptionalDeps: LibStub, Ace3, LibPubSub-1.0, LibQTip-1.0
 ## SavedVariables: PersistentStorage
 

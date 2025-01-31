@@ -141,6 +141,14 @@ function addon:SetTracking(spellId)
     end
 end
 
+function addon:GetZoneId()
+    local mapId = C_Map.GetBestMapForUnit("player")
+    if not mapId then
+        mapId = GetRealZoneText()
+    end
+    return mapId
+end
+
 function addon:OnUnitEvent(event, unit)
     if unit == "player" then
         self:CheckTracking()
@@ -160,7 +168,7 @@ function addon:OnPlayerResurrect()
 end
 
 function addon:OnZoneChangedNewArea()
-    local mapId = C_Map.GetBestMapForUnit("player")
+    mapId = self:GetZoneId()
 
     local autoTrackingSpellId = PersistentStorage["autoTracking"][mapId]
     if autoTrackingSpellId ~= nil then

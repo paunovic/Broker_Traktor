@@ -21,12 +21,22 @@ function broker:OnDisable()
 end
 
 function broker:OnTrackingChanged()
-    local id = TrackingApi:GetActiveTrackingId()
-    if not id then
+    local spellId = TrackingApi:GetActiveTrackingId()
+
+    if not spellId then
         self:SetValue("Not Tracking", ICON_ABILITY_TRACKING)
     else
-        name, icon, active = TrackingApi:GetTrackingInfo(id)
-        self:SetValue(name, icon)
+        name, icon, active = TrackingApi:GetTrackingInfo(spellId)
+
+        local mapId = addon:GetZoneId()
+
+        if PersistentStorage["autoTracking"][mapId] == spellId then
+            textColor = "|cFF75FF75"
+        else
+            textColor = "|cFFFFFFFF"
+        end
+
+        self:SetValue(textColor..name, icon)
     end
 end
 
