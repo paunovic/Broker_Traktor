@@ -114,16 +114,16 @@ function tooltip:GetLineScript(spellId)
             if PersistentStorage["smartTracking"][zoneText] ~= nil then
                 if PersistentStorage["smartTracking"][zoneText] == spellId then
                     PersistentStorage["smartTracking"][zoneText] = nil
-                    print("|cFFBBBBBBTraktor |cFFFCBA03"..zoneText.."|cFFFFFFFF smart tracking off")
+                    print("|cFFBBBBBBTraktor:|cFFFFFFFF smart tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
                     addon:Publish("REDRAW_INTERFACE")
                     return
                 else
                     PersistentStorage["smartTracking"][zoneText] = spellId
-                    print("|cFFBBBBBBTraktor: |cFFFCBA03"..zoneText.."|cFFFFFFFF smart tracking on (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+                    print("|cFFBBBBBBTraktor:|cFFFFFFFF smart tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
                 end
             else
                 PersistentStorage["smartTracking"][zoneText] = spellId
-                print("|cFFBBBBBBTraktor: |cFFFCBA03"..zoneText.."|cFFFFFFFF smart tracking on (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+                print("|cFFBBBBBBTraktor:|cFFFFFFFF smart tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
             end
         end
 
