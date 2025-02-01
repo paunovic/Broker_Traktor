@@ -5,7 +5,12 @@ local _G = _G
 
 function addon:OnInitialize()
     self.spells = {}
-    self.trackingId = nil
+    self.activeTrackingId = nil
+    self.alternateTrackingIds = {
+        primary = nil,
+        secondary = nil
+    }
+    self.alternateTrackingTimer = nil
     self.cooldownTimer = nil
 end
 
@@ -20,7 +25,7 @@ function addon:OnEnable()
     end
 
     self:RegisterEvent("MINIMAP_UPDATE_TRACKING", "OnMinimapUpdateTracking")
-    self:RegisterEvent("SPELLS_CHANGED", "UpdateSpells")
+    self:RegisterEvent("SPELLS_CHANGED", "OnSpellsChanged")
     self:RegisterEvent("SKILL_LINES_CHANGED", "UpdateSpells")
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "UpdateSpells")
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", "OnUnitEvent")
@@ -41,16 +46,16 @@ function addon:CheckTracking()
         -- wait a second in case we're (supposed to be) dead
         C_Timer.After(1, function()
             activeTrackingId = TrackingApi:GetActiveTrackingId()
-            if self.trackingId ~= activeTrackingId then
+            if self.activeTrackingId ~= activeTrackingId then
                 if not _G.UnitIsDeadOrGhost("player") then
-                    self.trackingId = TrackingApi:GetActiveTrackingId()
+                    self.activeTrackingId = activeTrackingId
                 end
                 self:Publish("TRACKING_CHANGED")
             end
         end)
-    elseif self.trackingId ~= activeTrackingId then
+    elseif self.activeTrackingId ~= activeTrackingId then
         if not _G.UnitIsDeadOrGhost("player") then
-            self.trackingId = TrackingApi:GetActiveTrackingId()
+            self.activeTrackingId = activeTrackingId
         end
         self:Publish("TRACKING_CHANGED")
     end
@@ -119,17 +124,66 @@ function addon:SetTracking(spellId)
     end
 
     if not spellId or spellId == 0 then
+        -- if no tracking is selected, cancel alternate tracking as well
+        addon:SetAlternateTracking(nil, nil)
         _G.CancelTrackingBuff()
     elseif spellId ~= TrackingApi:GetActiveTrackingId() then
         local cooldownStart, cooldownDuration = _G.GetSpellCooldown(spellId)
         if cooldownStart > 0 and cooldownDuration > 0 then
-            self.cooldownTimer = C_Timer.NewTimer(0.01 + cooldownStart + cooldownDuration - _G.GetTime(), function()
+            self.cooldownTimer = C_Timer.NewTimer(cooldownStart + cooldownDuration - _G.GetTime() + 0.01, function()
                 self:SetTracking(spellId)
             end)
         else
             _G.CastSpellByID(spellId)
         end
     end
+end
+
+function addon:CreateAlternateTrackingTicker()
+    self.alternateTrackingTimer = C_Timer.NewTicker(2.5, function()
+        if not _G.UnitIsDeadOrGhost("player") then
+            if self.activeTrackingId == self.alternateTrackingIds.primary then
+                self:SetTracking(self.alternateTrackingIds.secondary)
+            else
+                self:SetTracking(self.alternateTrackingIds.primary)
+            end
+        end
+    end)
+end
+
+function addon:CancelAlternateTrackingTicker()
+    if self.alternateTrackingTimer then
+        self.alternateTrackingTimer:Cancel()
+        self.alternateTrackingTimer = nil
+    end
+end
+
+function addon:SetAlternateTracking(primarySpellId, secondarySpellId)
+    if (
+       self.alternateTrackingIds.primary == primarySpellId
+       and self.alternateTrackingIds.secondary == secondarySpellId
+    ) then
+        return
+    end
+
+    local original_primary = self.alternateTrackingIds.primary
+    self.alternateTrackingIds.primary = primarySpellId
+    self.alternateTrackingIds.secondary = secondarySpellId
+
+    self:CancelAlternateTrackingTicker()
+
+    if self.alternateTrackingIds.primary then
+        self:CreateAlternateTrackingTicker()
+        print("|cFFFFFFFFTraktor: alternate tracking |cFF00FF00on|cFFFFFFFF (|cFF75FF75"..C_Spell.GetSpellName(secondarySpellId).."|cFFFFFFFF)")
+    else
+        self:SetTracking(original_primary)
+        print("|cFFFFFFFFTraktor: alternate tracking |cFFFF3333off")
+   end
+end
+
+function addon:IsSmartTracking(spellId)
+    local zoneText = _G.GetRealZoneText()
+    return PersistentStorage["smartTracking"][zoneText] == spellId
 end
 
 function addon:OnUnitEvent(_, unit)
@@ -140,13 +194,12 @@ end
 
 function addon:OnMinimapUpdateTracking()
     self:CheckTracking()
-    self:Publish("REDRAW_INTERFACE")
 end
 
 function addon:OnPlayerResurrect()
-    if self.trackingId and not _G.UnitIsDeadOrGhost("player") then
-        local trackingId = self.trackingId
-        self.trackingId = nil
+    if self.activeTrackingId and not _G.UnitIsDeadOrGhost("player") then
+        local trackingId = self.activeTrackingId
+        self.activeTrackingId = nil
         self:SetTracking(trackingId)
     end
 end
@@ -157,8 +210,16 @@ function addon:OnZoneChangedNewArea()
     local smartTrackingSpellId = PersistentStorage["smartTracking"][zoneText]
 
     if smartTrackingSpellId then
+        if addon.alternateTrackingIds.primary then
+            addon.alternateTrackingIds.primary = smartTrackingSpellId
+        end
         self:SetTracking(smartTrackingSpellId)
     end
 
     self:Publish("REDRAW_INTERFACE")
+end
+
+function addon:OnSpellsChanged()
+    self:UpdateSpells()
+    self:Publish("RELOAD_INTERFACE")
 end

@@ -12,32 +12,43 @@ end
 
 function broker:OnEnable()
     addon:Subscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
-    addon:Subscribe("REDRAW_INTERFACE", self, "OnRedrawInterface")
+    addon:Subscribe("RELOAD_INTERFACE", self, "ReloadInterface")
+    addon:Subscribe("REDRAW_INTERFACE", self, "RedrawInterface")
 end
 
 function broker:OnDisable()
-    addon:Unsubscribe("REDRAW_INTERFACE", self, "OnRedrawInterface")
+    addon:Unsubscribe("REDRAW_INTERFACE", self, "RedrawInterface")
+    addon:Unsubscribe("RELOAD_INTERFACE", self, "ReloadInterface")
     addon:Unsubscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
 end
 
 function broker:OnTrackingChanged()
-    local spellId = TrackingApi:GetActiveTrackingId()
-    local zoneText = _G.GetRealZoneText()
-
-    local textColor = "|cFFFFFFFF"
-    if PersistentStorage["smartTracking"][zoneText] == spellId then
-        textColor = "|cFF75FF75"
+    local textColor = "|cFFFFFFFF" -- white
+    if (
+        addon.activeTrackingId
+        and (
+            addon.activeTrackingId == addon.alternateTrackingIds.primary
+            or addon.activeTrackingId == addon.alternateTrackingIds.secondary
+        )
+    ) then
+        textColor = "|cFFFFFF00" -- yellow
+    elseif addon:IsSmartTracking(addon.activeTrackingId) then
+        textColor = "|cFF75FF75" -- green
     end
 
-    if not spellId or spellId == 0 then
+    if not addon.activeTrackingId or addon.activeTrackingId == 0 then
         self:SetValue(textColor.."Not Tracking", ICON_ABILITY_TRACKING)
     else
-        local spellName, spellIcon, spellActive = TrackingApi:GetTrackingInfo(spellId)
+        local spellName, spellIcon, _ = TrackingApi:GetTrackingInfo(addon.activeTrackingId)
         self:SetValue(textColor..spellName, spellIcon)
     end
 end
 
-function broker:OnRedrawInterface()
+function broker:RedrawInterface()
+    self:OnTrackingChanged()
+end
+
+function broker:ReloadInterface()
     self:OnTrackingChanged()
 end
 
@@ -56,11 +67,5 @@ end
 function broker.OnLeave(frame)
     if broker.enabledState then
         addon:Publish("MOUSE_LEAVE", frame)
-    end
-end
-
-function broker.OnClick(frame, ...)
-    if broker.enabledState then
-        addon:Publish("MOUSE_CLICK", frame, ...)
     end
 end

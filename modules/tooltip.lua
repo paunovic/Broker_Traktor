@@ -7,102 +7,138 @@ local LibQTip = LibStub("LibQTip-1.0")
 
 function tooltip:OnEnable()
     addon:Subscribe("MOUSE_ENTER", self, "Show")
-    addon:Subscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
-    addon:Subscribe("ZONE_CHANGED_NEW_AREA", self, "OnZoneChangedNewArea")
-    addon:Subscribe("REDRAW_INTERFACE", self, "Redraw")
+    addon:Subscribe("TRACKING_CHANGED", self, "RedrawInterface")
+    addon:Subscribe("ZONE_CHANGED_NEW_AREA", self, "RedrawInterface")
+    addon:Subscribe("RELOAD_INTERFACE", self, "ReloadInterface")
+    addon:Subscribe("REDRAW_INTERFACE", self, "RedrawInterface")
 end
 
 function tooltip:OnDisable()
     self:Hide()
 
-    addon:Unsubscribe("REDRAW_INTERFACE", self, "Redraw")
-    addon:Unsubscribe("ZONE_CHANGED_NEW_AREA", self, "OnZoneChangedNewArea")
+    addon:Unsubscribe("REDRAW_INTERFACE", self, "RedrawInterface")
+    addon:Unsubscribe("RELOAD_INTERFACE", self, "ReloadInterface")
+    addon:Unsubscribe("ZONE_CHANGED_NEW_AREA", self, "RedrawInterface")
+    addon:Unsubscribe("TRACKING_CHANGED", self, "RedrawInterface")
     addon:Unsubscribe("MOUSE_ENTER", self, "Show")
-    addon:Unsubscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
 end
 
-function tooltip:Redraw()
-    if self.tip then
-        self.tip:Clear()
-        self:Populate()
-    end
+function tooltip:ReloadInterface()
+    self:Redraw(true)
 end
 
-function tooltip:OnTrackingChanged()
-    self:Redraw()
-end
-
-function tooltip:OnZoneChangedNewArea()
-    self:Redraw()
+function tooltip:RedrawInterface()
+    self:Redraw(false)
 end
 
 function tooltip:Show(anchor)
     self:Hide()
 
     if self.enabledState then
-        self.tip = LibQTip:Acquire(addonName.."Tooltip", 3, "LEFT", "LEFT")
+        self.tip = LibQTip:Acquire(addonName.."Tooltip", 3, "LEFT", "LEFT", "LEFT")
         self.tip.OnRelease = function() self.tip = nil end
+
+        if not self.tipAnchor then
+            self.tipAnchor = _G.CreateFrame("Frame", anchor)
+        end
+        self.tipAnchor:SetPoint(anchor:GetPoint())
+        self.tipAnchor:SetWidth(anchor:GetWidth())
+        self.tipAnchor:SetHeight(anchor:GetHeight())
+        self.tip:SmartAnchorTo(self.tipAnchor)
+
         self.tip:SetAutoHideDelay(0.1, anchor)
-        self.tip:SmartAnchorTo(anchor)
-        self:Redraw()
+
+        self:ReloadInterface()
         self.tip:Show()
     end
 end
 
 function tooltip:Hide()
+    if self.tipAnchor then
+        self.tipAnchor:Hide()
+        self.tipAnchor:SetParent(nil)
+        self.tipAnchor = nil
+    end
+
     if self.tip then
         LibQTip:Release(self.tip)
     end
 end
 
-function tooltip:Populate()
-    local trackingId = TrackingApi:GetActiveTrackingId()
-    local spells = addon:GetSpells()
+function tooltip:Redraw(reload)
+    if not self.tip then
+        return
+    end
 
+    local spells = addon:GetSpells()
     local zoneText = _G.GetRealZoneText()
 
-    local textColor = "|cFFFFFFFF"
-    if PersistentStorage["smartTracking"][zoneText] == 0 then
-        textColor = "|cFF75FF75"
+    local lineIndex
+
+    if reload then
+        self.tip:Clear()
+        lineIndex = self.tip:AddLine()
+     else
+        lineIndex = 1
     end
-    self:AddLine(0, nil, _G.MINIMAP_TRACKING_NONE, trackingId == 0, textColor)
+
+    self:SetLine(lineIndex, 0, nil, _G.MINIMAP_TRACKING_NONE, zoneText)
 
     local spellId, spellName, spellIcon
 
     for i = 1, #spells do
         spellId, spellName, spellIcon = unpack(spells[i])
-        if PersistentStorage["smartTracking"][zoneText] == spellId then
-            textColor = "|cFF75FF75"
+
+        if reload then
+            lineIndex = self.tip:AddLine()
         else
-            textColor = "|cFFFFFFFF"
+            lineIndex = lineIndex + 1
         end
-        self:AddLine(spellId, spellIcon, spellName, spellId == trackingId, textColor)
+
+        self:SetLine(
+            lineIndex,
+            spellId,
+            spellIcon,
+            spellName,
+            zoneText
+        )
     end
 end
 
-function tooltip:AddLine(spellId, spellIcon, spellName, spellActive, textColor)
-    local line = self.tip:AddLine()
-    local radio = "|T:0|t"
+function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
+    local spellIsAlternate = (
+        addon.alternateTrackingIds.primary == spellId
+        or addon.alternateTrackingIds.secondary == spellId
+    )
 
-    if spellActive then
-        radio = "|TInterface\\Buttons\\UI-RadioButton:8:8:0:0:64:16:19:28:3:12|t"
+    local textColor = "|cFFFFFFFF" -- white
+    if spellIsAlternate then
+        textColor = "|cFFFFFF00" -- yellow
+    elseif PersistentStorage["smartTracking"][zoneText] == spellId then
+        textColor = "|cFF75FF75" -- green
     end
 
-    self.tip:SetCell(line, 1, radio)
+    local radio = "|T:0|t"
+    if addon.activeTrackingId == spellId then
+        radio = "|TInterface\\Buttons\\UI-RadioButton:8:8:0:0:64:16:19:28:3:12|t"
+    elseif spellIsAlternate then
+        radio = "|TInterface\\Buttons\\UI-RadioButton:7:7:0:0:64:16:2:11:3:12|t"
+    end
+
+    self.tip:SetCell(lineIndex, 1, radio)
 
     if spellIcon then
-        self.tip:SetCell(line, 2, "|T"..spellIcon..":14|t")
+        self.tip:SetCell(lineIndex, 2, "|T"..spellIcon..":14|t")
     end
-    self.tip:SetCell(line, 3, textColor..spellName)
 
-    self.tip:SetLineScript(line, "OnMouseUp", self:GetLineScript(spellId))
+    self.tip:SetCell(lineIndex, 3, textColor..spellName)
 
-    return line
+    self.tip:SetLineScript(lineIndex, "OnMouseUp", self:LineScriptFactory(spellId))
 end
 
-function tooltip:GetLineScript(spellId)
+function tooltip:LineScriptFactory(spellId)
     return function()
-        if IsShiftKeyDown() then
+        if _G.IsShiftKeyDown() then
             local zoneText = _G.GetRealZoneText()
 
             local spellName = "Not Tracking"
@@ -119,14 +155,42 @@ function tooltip:GetLineScript(spellId)
                 else
                     PersistentStorage["smartTracking"][zoneText] = spellId
                     print("|cFFFFFFFFTraktor: smart tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+                    addon:Publish("REDRAW_INTERFACE")
                 end
             else
                 PersistentStorage["smartTracking"][zoneText] = spellId
                 print("|cFFFFFFFFTraktor: smart tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+                addon:Publish("REDRAW_INTERFACE")
             end
         end
 
+        if _G.IsControlKeyDown() and spellId ~=0 then
+            if (
+                addon.alternateTrackingIds.secondary == spellId
+                or addon.alternateTrackingIds.primary == spellId
+            ) then
+                addon:SetAlternateTracking(nil, nil)
+            elseif (
+               addon.activeTrackingId ~= 0
+               and addon.activeTrackingId ~= spellId
+            ) then
+                if addon.alternateTrackingIds.primary then
+                    addon:SetAlternateTracking(addon.alternateTrackingIds.primary, spellId)
+                else
+                    addon:SetAlternateTracking(addon.activeTrackingId, spellId)
+                end
+            end
+
+            addon:Publish("REDRAW_INTERFACE")
+
+            return
+        end
+
+        -- if alternate tracking is enabled, set new primary tracking if tooltip is left clicked
+        if addon.alternateTrackingIds.primary then
+            addon.alternateTrackingIds.primary = spellId
+        end
+
         addon:SetTracking(spellId)
-        addon:Publish("TRACKING_CHANGED")
     end
 end
