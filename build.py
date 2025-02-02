@@ -5,7 +5,8 @@ from pathlib import Path
 files: set[str] = {
     "Broker_Traktor.toc",
     "traktor.lua",
-    "TrackingApi.lua",
+    "tracking_api.lua",
+    "settings.lua",
     "embeds.xml",
     "modules/**",
     "lib/**",
