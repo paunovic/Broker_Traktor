@@ -20,7 +20,7 @@ end
 function addon:OnEnable()
     -- initialize on the first run
     if not PersistentStorage then
-        print("|cFFBBBBBBTraktor: ".."|cFFFFFF00Initializing...")
+        print("|cFFFFFF00[Traktor] ".."|cFFFFFF00Initializing...")
         PersistentStorage = {}
     end
 
@@ -173,9 +173,9 @@ function addon:SetAutoTracking(zoneText, spellId)
     addon:Publish("REDRAW_INTERFACE")
 
     if not spellId then
-        print("|cFFFFFFFFTraktor: auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
+        print("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
     else
-        print("|cFFFFFFFFTraktor: auto tracking |cFF00FF00on|cFFFFFFFF for "..
+        print("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFF00FF00on|cFFFFFFFF for "..
               "|cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
     end
 end
@@ -186,7 +186,7 @@ end
 
 function addon:CreateDualTrackingTicker()
     if self.dualTracking.ticker then
-        print("|cFFFF3333Traktor: |cFFFF0000Dual tracking ticker already exists")
+        print("|cFFFF3333[Traktor]|cFFFFFFFF |cFFFF0000Dual tracking ticker already exists")
         return
     end
 
@@ -219,7 +219,6 @@ function addon:CancelDualTrackingTicker()
 end
 
 function addon:SetDualTracking(primarySpellId, secondarySpellId)
-    print("SetDualTracking", primarySpellId, secondarySpellId)
     if (
        self.dualTracking.primaryId == primarySpellId
        and self.dualTracking.secondaryId == secondarySpellId
@@ -236,12 +235,12 @@ function addon:SetDualTracking(primarySpellId, secondarySpellId)
 
     if self.dualTracking.enabled then
         self:CreateDualTrackingTicker()
-        print("|cFFFFFFFFTraktor: dual tracking |cFF00FF00on|cFFFFFFFF "..
+        print("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFF00FF00on|cFFFFFFFF "..
               "(|cFFFFFF00"..C_Spell.GetSpellName(self.dualTracking.primaryId).."|cFFFFFFFF / "..
               "|cFFFFFF00"..C_Spell.GetSpellName(self.dualTracking.secondaryId).."|cFFFFFFFF)")
     else
         self:SetTracking(originalPrimaryId)
-        print("|cFFFFFFFFTraktor: dual tracking |cFFFF3333off")
+        print("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFFFF3333off")
    end
 end
 
