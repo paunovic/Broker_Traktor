@@ -27,12 +27,12 @@ function broker:OnTrackingChanged()
     if (
         addon.activeTrackingId
         and (
-            addon.activeTrackingId == addon.alternateTrackingIds.primary
-            or addon.activeTrackingId == addon.alternateTrackingIds.secondary
+            addon.activeTrackingId == addon.dualTrackingIds.primary
+            or addon.activeTrackingId == addon.dualTrackingIds.secondary
         )
     ) then
         textColor = "|cFFFFFF00" -- yellow
-    elseif addon:IsSmartTracking(addon.activeTrackingId) then
+    elseif addon:IsAutoTracking(_G.GetRealZoneText(), addon.activeTrackingId) then
         textColor = "|cFF75FF75" -- green
     end
 

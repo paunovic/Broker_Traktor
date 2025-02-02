@@ -98,22 +98,22 @@ function tooltip:Redraw(reload)
 end
 
 function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
-    local spellIsAlternate = (
-        addon.alternateTrackingIds.primary == spellId
-        or addon.alternateTrackingIds.secondary == spellId
+    local isSpellDualTracked = (
+        addon.dualTrackingIds.primary == spellId
+        or addon.dualTrackingIds.secondary == spellId
     )
 
     local textColor = "|cFFFFFFFF" -- white
-    if spellIsAlternate then
+    if isSpellDualTracked then
         textColor = "|cFFFFFF00" -- yellow
-    elseif PersistentStorage["smartTracking"][zoneText] == spellId then
+    elseif PersistentStorage["autoTracking"][zoneText] == spellId then
         textColor = "|cFF75FF75" -- green
     end
 
     local radio = "|T:0|t"
     if addon.activeTrackingId == spellId then
         radio = "|TInterface\\Buttons\\UI-RadioButton:8:8:0:0:64:16:19:28:3:12|t"
-    elseif spellIsAlternate then
+    elseif isSpellDualTracked then
         radio = "|TInterface\\Buttons\\UI-RadioButton:7:7:0:0:64:16:2:11:3:12|t"
     end
 
@@ -133,43 +133,32 @@ function tooltip:LineScriptFactory(spellId)
         if _G.IsControlKeyDown() then
             local zoneText = _G.GetRealZoneText()
 
-            local spellName = "Not Tracking"
-            if spellId and spellId ~= 0 then
-                spellName = C_Spell.GetSpellName(spellId)
-            end
-
-            if PersistentStorage["smartTracking"][zoneText] ~= nil then
-                if PersistentStorage["smartTracking"][zoneText] == spellId then
-                    PersistentStorage["smartTracking"][zoneText] = nil
-                    print("|cFFFFFFFFTraktor: smart tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
-                    addon:Publish("REDRAW_INTERFACE")
+            if PersistentStorage["autoTracking"][zoneText] ~= nil then
+                if PersistentStorage["autoTracking"][zoneText] == spellId then
+                    addon:SetAutoTracking(zoneText, nil)
                     return
                 else
-                    PersistentStorage["smartTracking"][zoneText] = spellId
-                    print("|cFFFFFFFFTraktor: smart tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
-                    addon:Publish("REDRAW_INTERFACE")
+                    addon:SetAutoTracking(zoneText, spellId)
                 end
             else
-                PersistentStorage["smartTracking"][zoneText] = spellId
-                print("|cFFFFFFFFTraktor: smart tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
-                addon:Publish("REDRAW_INTERFACE")
+                addon:SetAutoTracking(zoneText, spellId)
             end
         end
 
         if _G.IsShiftKeyDown() and spellId ~=0 then
             if (
-                addon.alternateTrackingIds.secondary == spellId
-                or addon.alternateTrackingIds.primary == spellId
+                addon.dualTrackingIds.secondary == spellId
+                or addon.dualTrackingIds.primary == spellId
             ) then
-                addon:SetAlternateTracking(nil, nil)
+                addon:SetDualTracking(nil, nil)
             elseif (
                addon.activeTrackingId ~= 0
                and addon.activeTrackingId ~= spellId
             ) then
-                if addon.alternateTrackingIds.primary then
-                    addon:SetAlternateTracking(addon.alternateTrackingIds.primary, spellId)
+                if addon.dualTrackingIds.primary then
+                    addon:SetDualTracking(addon.dualTrackingIds.primary, spellId)
                 else
-                    addon:SetAlternateTracking(addon.activeTrackingId, spellId)
+                    addon:SetDualTracking(addon.activeTrackingId, spellId)
                 end
             end
 
@@ -178,9 +167,9 @@ function tooltip:LineScriptFactory(spellId)
             return
         end
 
-        -- if alternate tracking is enabled, set new primary tracking if tooltip is left clicked
-        if addon.alternateTrackingIds.primary then
-            addon.alternateTrackingIds.primary = spellId
+        -- if dual tracking is enabled, set new primary tracking if tooltip is left clicked
+        if addon.dualTrackingIds.primary then
+            addon.dualTrackingIds.primary = spellId
         end
 
         addon:SetTracking(spellId)

@@ -2,7 +2,7 @@
 ## Title: Broker: Traktor
 ## Author: Rsrx
 ## Version: 1.0.7
-## Notes: Minimap tracking display for WoW Classic with smart & alternate tracking features.
+## Notes: Minimap tracking display for WoW Classic with few extra feaatures like auto and dual tracking.
 ## OptionalDeps: LibStub, Ace3, LibPubSub-1.0, LibQTip-1.0
 ## SavedVariablesPerCharacter: PersistentStorage
 

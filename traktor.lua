@@ -6,11 +6,11 @@ local _G = _G
 function addon:OnInitialize()
     self.spells = {}
     self.activeTrackingId = nil
-    self.alternateTrackingIds = {
+    self.dualTrackingIds = {
         primary = nil,
         secondary = nil
     }
-    self.alternateTrackingTimer = nil
+    self.dualTrackingTimer = nil
     self.cooldownTimer = nil
 end
 
@@ -20,8 +20,14 @@ function addon:OnEnable()
         print("|cFFBBBBBBTraktor: ".."|cFFFFFFFFInitializing...")
 
         PersistentStorage = {
-            smartTracking = {}
+            autoTracking = {}
         }
+    end
+
+    -- backwards compatibility, remove in the future
+    if PersistentStorage.smartTracking then
+        PersistentStorage.autoTracking = PersistentStorage.smartTracking
+        PersistentStorage.smartTracking = nil
     end
 
     self:RegisterEvent("MINIMAP_UPDATE_TRACKING", "OnMinimapUpdateTracking")
@@ -124,8 +130,8 @@ function addon:SetTracking(spellId)
     end
 
     if not spellId or spellId == 0 then
-        -- if no tracking is selected, cancel alternate tracking as well
-        addon:SetAlternateTracking(nil, nil)
+        -- if no tracking is selected, cancel dual tracking as well
+        addon:SetDualTracking(nil, nil)
         _G.CancelTrackingBuff()
     elseif spellId ~= TrackingApi:GetActiveTrackingId() then
         local cooldownStart, cooldownDuration = _G.GetSpellCooldown(spellId)
@@ -139,51 +145,93 @@ function addon:SetTracking(spellId)
     end
 end
 
-function addon:CreateAlternateTrackingTicker()
-    self.alternateTrackingTimer = C_Timer.NewTicker(2.5, function()
+function addon:SetAutoTracking(zoneText, spellId)
+    PersistentStorage["autoTracking"][zoneText] = spellId
+
+    local spellName = "Not Tracking"
+    if spellId and spellId ~= 0 then
+        spellName = C_Spell.GetSpellName(spellId)
+    end
+
+    addon:Publish("REDRAW_INTERFACE")
+
+    if not spellId then
+        print("|cFFFFFFFFTraktor: auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
+    else
+        print("|cFFFFFFFFTraktor: auto tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+    end
+end
+
+function addon:IsAutoTracking(zoneText, spellId)
+    return PersistentStorage["autoTracking"][zoneText] == spellId
+end
+
+function addon:CreateDualTrackingTicker()
+    self.dualTrackingTimer = C_Timer.NewTicker(2.5, function()
         if not _G.UnitIsDeadOrGhost("player") then
-            if self.activeTrackingId == self.alternateTrackingIds.primary then
-                self:SetTracking(self.alternateTrackingIds.secondary)
+            if self.activeTrackingId == self.dualTrackingIds.primary then
+                self:SetTracking(self.dualTrackingIds.secondary)
             else
-                self:SetTracking(self.alternateTrackingIds.primary)
+                self:SetTracking(self.dualTrackingIds.primary)
             end
         end
     end)
 end
 
-function addon:CancelAlternateTrackingTicker()
-    if self.alternateTrackingTimer then
-        self.alternateTrackingTimer:Cancel()
-        self.alternateTrackingTimer = nil
+function addon:CancelDualTrackingTicker()
+    if self.dualTrackingTimer then
+        self.dualTrackingTimer:Cancel()
+        self.dualTrackingTimer = nil
     end
 end
 
-function addon:SetAlternateTracking(primarySpellId, secondarySpellId)
+function addon:SetDualTracking(primarySpellId, secondarySpellId)
     if (
-       self.alternateTrackingIds.primary == primarySpellId
-       and self.alternateTrackingIds.secondary == secondarySpellId
+       self.dualTrackingIds.primary == primarySpellId
+       and self.dualTrackingIds.secondary == secondarySpellId
     ) then
         return
     end
 
-    local original_primary = self.alternateTrackingIds.primary
-    self.alternateTrackingIds.primary = primarySpellId
-    self.alternateTrackingIds.secondary = secondarySpellId
+    local original_primary = self.dualTrackingIds.primary
+    self.dualTrackingIds.primary = primarySpellId
+    self.dualTrackingIds.secondary = secondarySpellId
 
-    self:CancelAlternateTrackingTicker()
+    self:CancelDualTrackingTicker()
 
-    if self.alternateTrackingIds.primary then
-        self:CreateAlternateTrackingTicker()
-        print("|cFFFFFFFFTraktor: alternate tracking |cFF00FF00on|cFFFFFFFF (|cFF75FF75"..C_Spell.GetSpellName(secondarySpellId).."|cFFFFFFFF)")
+    if self.dualTrackingIds.primary then
+        self:CreateDualTrackingTicker()
+        print("|cFFFFFFFFTraktor: dual tracking |cFF00FF00on|cFFFFFFFF "..
+              "(|cFFFFFF00"..C_Spell.GetSpellName(primarySpellId).."|cFFFFFFFF / "..
+              "|cFFFFFF00"..C_Spell.GetSpellName(secondarySpellId).."|cFFFFFFFF)")
     else
         self:SetTracking(original_primary)
-        print("|cFFFFFFFFTraktor: alternate tracking |cFFFF3333off")
+        print("|cFFFFFFFFTraktor: dual tracking |cFFFF3333off")
    end
 end
 
-function addon:IsSmartTracking(spellId)
+function addon:OnZoneChangedNewArea()
     local zoneText = _G.GetRealZoneText()
-    return PersistentStorage["smartTracking"][zoneText] == spellId
+
+    -- clear dual tracking if we're in a dungeon, raid, or arena
+    local _, instanceType = _G.GetInstanceInfo()
+    if instanceType == "party" or instanceType == "raid" or instanceType == "arena" then
+        if addon.dualTrackingIds.primary then
+            addon.dualTrackingIds.primary = nil
+            addon.dualTrackingIds.secondary = nil
+        end
+    end
+
+    local autoTrackingSpellId = PersistentStorage["autoTracking"][zoneText]
+
+    if autoTrackingSpellId then
+        if addon.dualTrackingIds.primary then
+            addon.dualTrackingIds.primary = autoTrackingSpellId
+        end
+        self:SetTracking(autoTrackingSpellId)
+    end
+
+    self:Publish("REDRAW_INTERFACE")
 end
 
 function addon:OnUnitEvent(_, unit)
@@ -202,30 +250,6 @@ function addon:OnPlayerResurrect()
         self.activeTrackingId = nil
         self:SetTracking(trackingId)
     end
-end
-
-function addon:OnZoneChangedNewArea()
-    local zoneText = _G.GetRealZoneText()
-
-    -- clear alternate tracking if we're in a dungeon, raid, or arena
-    local _, instanceType = _G.GetInstanceInfo()
-    if instanceType == "party" or instanceType == "raid" or instanceType == "arena" then
-        if addon.alternateTrackingIds.primary then
-            addon.alternateTrackingIds.primary = nil
-            addon.alternateTrackingIds.secondary = nil
-        end
-    end
-
-    local smartTrackingSpellId = PersistentStorage["smartTracking"][zoneText]
-
-    if smartTrackingSpellId then
-        if addon.alternateTrackingIds.primary then
-            addon.alternateTrackingIds.primary = smartTrackingSpellId
-        end
-        self:SetTracking(smartTrackingSpellId)
-    end
-
-    self:Publish("REDRAW_INTERFACE")
 end
 
 function addon:OnSpellsChanged()
