@@ -6,55 +6,38 @@ local _G = _G
 
 function addon:OnInitialize()
     self.spells = {}
+    self.isStationary = true
     self.activeTrackingId = nil
-    self.dualTrackingIds = {
-        primary = nil,
-        secondary = nil
+    self.dualTracking = {
+        enabled = false,
+        primaryId = nil,
+        secondaryId = nil,
+        ticker = nil
     }
-    self.dualTrackingTimer = nil
     self.cooldownTimer = nil
 end
 
 function addon:OnEnable()
-    -- initialize on first run
+    -- initialize on the first run
     if not PersistentStorage then
-        print("|cFFBBBBBBTraktor: ".."|cFFFFFFFFInitializing...")
-
-        PersistentStorage = {
-            dualTrackingInterval = 2,
-            dualTrackingDisableInCombat = true,
-            dualTrackingDisableInInstance = {
-                party = true,
-                raid = true,
-                arena = true,
-                battleground = true
-            },
-            autoTracking = {}
-        }
+        print("|cFFBBBBBBTraktor: ".."|cFFFFFF00Initializing...")
+        PersistentStorage = {}
     end
 
-    -- backwards compatibility, remove in the future
-    if PersistentStorage.smartTracking then
-        PersistentStorage.autoTracking = PersistentStorage.smartTracking
-        PersistentStorage.smartTracking = nil
-    end
-    if not PersistentStorage.dualTrackingInterval then
-        PersistentStorage.dualTrackingInterval = 2
-    end
-    if not PersistentStorage.dualTrackingDisableInCombat then
-        PersistentStorage.dualTrackingDisableInCombat = true
-    end
-    if not PersistentStorage.dualTrackingDisableInInstance then
-        PersistentStorage.dualTrackingDisableInInstance = {
-            party = true,
-            raid = true,
-            arena = true,
-            battleground = true
-        }
-    end
+    Utils:SetDefault(PersistentStorage, "autoTracking", {})
+    Utils:SetDefault(PersistentStorage, "dualTracking.interval", 2)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableInCombat", true)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileResting", true)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileStationary", true)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableInInstance", {
+        party = true,
+        raid = true,
+        arena = true,
+        battleground = true
+    })
 
-    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, settingsLayout, nil)
-    LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName):SetParent(InterfaceOptionsFramePanelContainer)
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("Broker: Traktor", settingsLayout, nil)
+    LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker: Traktor"):SetParent(InterfaceOptionsFramePanelContainer)
 
     self:RegisterEvent("SPELLS_CHANGED", "OnSpellsChanged")
     self:RegisterEvent("SKILL_LINES_CHANGED", "OnSpellsChanged")
@@ -67,6 +50,8 @@ function addon:OnEnable()
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "OnZoneChangedNewArea")
     self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnPlayerRegenDisabled")
     self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnPlayerRegenEnabled")
+    self:RegisterEvent("PLAYER_STOPPED_MOVING", "OnPlayerStoppedMoving")
+    self:RegisterEvent("PLAYER_STARTED_MOVING", "OnPlayerStartedMoving")
 
     addon:Subscribe("MOUSE_CLICK", self, "OnClick")
 end
@@ -200,47 +185,70 @@ function addon:IsAutoTracking(zoneText, spellId)
 end
 
 function addon:CreateDualTrackingTicker()
-    self.dualTrackingTimer = C_Timer.NewTicker(PersistentStorage.dualTrackingInterval, function()
+    if self.dualTracking.ticker then
+        print("|cFFFF3333Traktor: |cFFFF0000Dual tracking ticker already exists")
+        return
+    end
+
+    self.dualTracking.ticker = C_Timer.NewTicker(PersistentStorage.dualTracking.interval, function()
+        -- handle disable while resting setting and skip current tick
+        if PersistentStorage.dualTracking.disableWhileResting and _G.IsResting() then
+            return
+        end
+
+        -- handle disable while stationary setting and skip current tick
+        if PersistentStorage.dualTracking.disableWhileStationary and self.isStationary then
+            return
+        end
+
         if not _G.UnitIsDeadOrGhost("player") then
-            if self.activeTrackingId == self.dualTrackingIds.primary then
-                self:SetTracking(self.dualTrackingIds.secondary)
+            if self.activeTrackingId == self.dualTracking.primaryId then
+                self:SetTracking(self.dualTracking.secondaryId)
             else
-                self:SetTracking(self.dualTrackingIds.primary)
+                self:SetTracking(self.dualTracking.primaryId)
             end
         end
     end)
 end
 
 function addon:CancelDualTrackingTicker()
-    if self.dualTrackingTimer then
-        self.dualTrackingTimer:Cancel()
-        self.dualTrackingTimer = nil
+    if self.dualTracking.ticker then
+        self.dualTracking.ticker:Cancel()
+        self.dualTracking.ticker = nil
     end
 end
 
 function addon:SetDualTracking(primarySpellId, secondarySpellId)
+    print("SetDualTracking", primarySpellId, secondarySpellId)
     if (
-       self.dualTrackingIds.primary == primarySpellId
-       and self.dualTrackingIds.secondary == secondarySpellId
+       self.dualTracking.primaryId == primarySpellId
+       and self.dualTracking.secondaryId == secondarySpellId
     ) then
         return
     end
 
-    local original_primary = self.dualTrackingIds.primary
-    self.dualTrackingIds.primary = primarySpellId
-    self.dualTrackingIds.secondary = secondarySpellId
+    local originalPrimaryId = self.dualTracking.primaryId
+    self.dualTracking.primaryId = primarySpellId
+    self.dualTracking.secondaryId = secondarySpellId
+    self.dualTracking.enabled = self.dualTracking.primaryId and self.dualTracking.secondaryId
 
     self:CancelDualTrackingTicker()
 
-    if self.dualTrackingIds.primary then
+    if self.dualTracking.enabled then
         self:CreateDualTrackingTicker()
         print("|cFFFFFFFFTraktor: dual tracking |cFF00FF00on|cFFFFFFFF "..
-              "(|cFFFFFF00"..C_Spell.GetSpellName(primarySpellId).."|cFFFFFFFF / "..
-              "|cFFFFFF00"..C_Spell.GetSpellName(secondarySpellId).."|cFFFFFFFF)")
+              "(|cFFFFFF00"..C_Spell.GetSpellName(self.dualTracking.primaryId).."|cFFFFFFFF / "..
+              "|cFFFFFF00"..C_Spell.GetSpellName(self.dualTracking.secondaryId).."|cFFFFFFFF)")
     else
-        self:SetTracking(original_primary)
+        self:SetTracking(originalPrimaryId)
         print("|cFFFFFFFFTraktor: dual tracking |cFFFF3333off")
    end
+end
+
+function addon:OnClick(frame, button)
+    if button == "RightButton" then
+        _G.Settings.OpenToCategory("Broker: Traktor")
+    end
 end
 
 function addon:OnZoneChangedNewArea()
@@ -248,7 +256,7 @@ function addon:OnZoneChangedNewArea()
 
     -- clear dual tracking on entering instance
     local _, instanceType = _G.GetInstanceInfo()
-    if PersistentStorage.dualTrackingDisableInInstance[instanceType:lower()] then
+    if PersistentStorage.dualTracking.disableInInstance[instanceType:lower()] then
         self:SetDualTracking(nil, nil)
     end
 
@@ -256,8 +264,8 @@ function addon:OnZoneChangedNewArea()
 
     if autoTrackingSpellId then
         -- if dual tracking is enabled, set new primary tracking
-        if addon.dualTrackingIds.primary then
-            addon.dualTrackingIds.primary = autoTrackingSpellId
+        if addon.dualTracking.enabled then
+            addon.dualTracking.primaryId = autoTrackingSpellId
         end
         self:SetTracking(autoTrackingSpellId)
     end
@@ -291,25 +299,23 @@ function addon:OnPlayerResurrect()
 end
 
 function addon:OnPlayerRegenDisabled()
-    -- on combat start, cancel dual tracking ticker
-    if PersistentStorage.dualTrackingDisableInCombat then
-        if self.dualTrackingIds.primary then
-            self:CancelDualTrackingTicker()
-        end
+    -- handle disable in combat setting, on combat start, pause dual tracking ticker
+    if self.dualTracking.enabled and PersistentStorage.dualTracking.disableInCombat then
+        self:CancelDualTrackingTicker()
     end
 end
 
 function addon:OnPlayerRegenEnabled()
-    -- on combat end, restart dual tracking ticker
-    if PersistentStorage.dualTrackingDisableInCombat then
-        if self.dualTrackingIds.primary then
-            self:CreateDualTrackingTicker()
-        end
+    -- handle disable in combat setting, on combat end, restart dual tracking ticker
+    if self.dualTracking.enabled and PersistentStorage.dualTracking.disableInCombat then
+        self:CreateDualTrackingTicker()
     end
 end
 
-function addon:OnClick(frame, button)
-    if button == "RightButton" then
-        _G.Settings.OpenToCategory(addonName)
-    end
+function addon:OnPlayerStoppedMoving()
+    self.isStationary = true
+end
+
+function addon:OnPlayerStartedMoving()
+    self.isStationary = false
 end

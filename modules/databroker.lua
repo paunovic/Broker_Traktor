@@ -27,8 +27,8 @@ function broker:OnTrackingChanged()
     if (
         addon.activeTrackingId
         and (
-            addon.activeTrackingId == addon.dualTrackingIds.primary
-            or addon.activeTrackingId == addon.dualTrackingIds.secondary
+            addon.activeTrackingId == addon.dualTracking.primaryId
+            or addon.activeTrackingId == addon.dualTracking.secondaryid
         )
     ) then
         textColor = "|cFFFFFF00" -- yellow

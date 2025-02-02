@@ -99,8 +99,8 @@ end
 
 function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
     local isSpellDualTracked = (
-        addon.dualTrackingIds.primary == spellId
-        or addon.dualTrackingIds.secondary == spellId
+        addon.dualTracking.primaryId == spellId
+        or addon.dualTracking.secondaryId == spellId
     )
 
     local textColor = "|cFFFFFFFF" -- white
@@ -149,16 +149,16 @@ function tooltip:LineScriptFactory(spellId)
         -- ALT + left click to toggle dual tracking
         if _G.IsAltKeyDown() and spellId ~=0 then
             if (
-                addon.dualTrackingIds.secondary == spellId
-                or addon.dualTrackingIds.primary == spellId
+                addon.dualTracking.secondaryId == spellId
+                or addon.dualTracking.primaryId == spellId
             ) then
                 addon:SetDualTracking(nil, nil)
             elseif (
                addon.activeTrackingId ~= 0
                and addon.activeTrackingId ~= spellId
             ) then
-                if addon.dualTrackingIds.primary then
-                    addon:SetDualTracking(addon.dualTrackingIds.primary, spellId)
+                if addon.dualTracking.primaryId then
+                    addon:SetDualTracking(addon.dualTracking.primaryId, spellId)
                 else
                     addon:SetDualTracking(addon.activeTrackingId, spellId)
                 end
@@ -170,8 +170,8 @@ function tooltip:LineScriptFactory(spellId)
         end
 
         -- if dual tracking is enabled, set new primary tracking if tooltip is left clicked
-        if addon.dualTrackingIds.primary then
-            addon.dualTrackingIds.primary = spellId
+        if addon.dualTracking.enabled then
+            addon.dualTracking.primaryId = spellId
         end
 
         addon:SetTracking(spellId)
