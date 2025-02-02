@@ -38,9 +38,7 @@ function tooltip:Show(anchor)
         self.tip = LibQTip:Acquire(addonName.."Tooltip", 3, "LEFT", "LEFT", "LEFT")
         self.tip.OnRelease = function() self.tip = nil end
 
-        if not self.tipAnchor then
-            self.tipAnchor = _G.CreateFrame("Frame", anchor)
-        end
+        self.tipAnchor = _G.CreateFrame("Frame", anchor)
         self.tipAnchor:SetPoint(anchor:GetPoint())
         self.tipAnchor:SetWidth(anchor:GetWidth())
         self.tipAnchor:SetHeight(anchor:GetHeight())
@@ -95,13 +93,7 @@ function tooltip:Redraw(reload)
             lineIndex = lineIndex + 1
         end
 
-        self:SetLine(
-            lineIndex,
-            spellId,
-            spellIcon,
-            spellName,
-            zoneText
-        )
+        self:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
     end
 end
 
