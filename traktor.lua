@@ -207,6 +207,15 @@ end
 function addon:OnZoneChangedNewArea()
     local zoneText = _G.GetRealZoneText()
 
+    -- clear alternate tracking if we're in a dungeon, raid, or arena
+    local _, instanceType = _G.GetInstanceInfo()
+    if instanceType == "party" or instanceType == "raid" or instanceType == "arena" then
+        if addon.alternateTrackingIds.primary then
+            addon.alternateTrackingIds.primary = nil
+            addon.alternateTrackingIds.secondary = nil
+        end
+    end
+
     local smartTrackingSpellId = PersistentStorage["smartTracking"][zoneText]
 
     if smartTrackingSpellId then
