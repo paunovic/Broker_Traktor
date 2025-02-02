@@ -14,8 +14,8 @@ function addon:OnInitialize()
     self.cooldownTimer = nil
 end
 
-
 function addon:OnEnable()
+    -- initialize on first run
     if not PersistentStorage then
         print("|cFFBBBBBBTraktor: ".."|cFFFFFFFFInitializing...")
 
@@ -30,15 +30,22 @@ function addon:OnEnable()
         PersistentStorage.smartTracking = nil
     end
 
-    self:RegisterEvent("MINIMAP_UPDATE_TRACKING", "OnMinimapUpdateTracking")
     self:RegisterEvent("SPELLS_CHANGED", "OnSpellsChanged")
-    self:RegisterEvent("SKILL_LINES_CHANGED", "UpdateSpells")
-    self:RegisterEvent("PLAYER_ENTERING_WORLD", "UpdateSpells")
+    self:RegisterEvent("SKILL_LINES_CHANGED", "OnSpellsChanged")
+    self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnSpellsChanged")
     self:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED", "OnUnitEvent")
     self:RegisterEvent("UNIT_AURA", "OnUnitEvent")
+    self:RegisterEvent("MINIMAP_UPDATE_TRACKING", "OnMinimapUpdateTracking")
     self:RegisterEvent("PLAYER_ALIVE", "OnPlayerResurrect")
     self:RegisterEvent("PLAYER_UNGHOST", "OnPlayerResurrect")
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "OnZoneChangedNewArea")
+    self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnPlayerRegenDisabled")
+    self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnPlayerRegenEnabled")
+end
+
+function addon:OnDisable()
+    self:CancelDualTrackingTicker()
+    self:UnregisterAllEvents()
 end
 
 function addon:GetSpells()
@@ -117,10 +124,6 @@ function addon:UpdateSpells()
 
         return aIndex < bIndex
     end)
-
-    self:CheckTracking()
-
-    self:Publish("REDRAW_INTERFACE")
 end
 
 function addon:SetTracking(spellId)
@@ -158,7 +161,8 @@ function addon:SetAutoTracking(zoneText, spellId)
     if not spellId then
         print("|cFFFFFFFFTraktor: auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
     else
-        print("|cFFFFFFFFTraktor: auto tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+        print("|cFFFFFFFFTraktor: auto tracking |cFF00FF00on|cFFFFFFFF for "..
+              "|cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
     end
 end
 
@@ -167,7 +171,7 @@ function addon:IsAutoTracking(zoneText, spellId)
 end
 
 function addon:CreateDualTrackingTicker()
-    self.dualTrackingTimer = C_Timer.NewTicker(2.5, function()
+    self.dualTrackingTimer = C_Timer.NewTicker(2, function()
         if not _G.UnitIsDeadOrGhost("player") then
             if self.activeTrackingId == self.dualTrackingIds.primary then
                 self:SetTracking(self.dualTrackingIds.secondary)
@@ -216,15 +220,13 @@ function addon:OnZoneChangedNewArea()
     -- clear dual tracking if we're in a dungeon, raid, or arena
     local _, instanceType = _G.GetInstanceInfo()
     if instanceType == "party" or instanceType == "raid" or instanceType == "arena" then
-        if addon.dualTrackingIds.primary then
-            addon.dualTrackingIds.primary = nil
-            addon.dualTrackingIds.secondary = nil
-        end
+        self:SetDualTracking(nil, nil)
     end
 
     local autoTrackingSpellId = PersistentStorage["autoTracking"][zoneText]
 
     if autoTrackingSpellId then
+        -- if dual tracking is enabled, set new primary tracking
         if addon.dualTrackingIds.primary then
             addon.dualTrackingIds.primary = autoTrackingSpellId
         end
@@ -244,7 +246,14 @@ function addon:OnMinimapUpdateTracking()
     self:CheckTracking()
 end
 
+function addon:OnSpellsChanged()
+    self:UpdateSpells()
+    self:CheckTracking()
+    self:Publish("RELOAD_INTERFACE")
+end
+
 function addon:OnPlayerResurrect()
+    -- on ressurect, re-enable previously active tracking
     if self.activeTrackingId and not _G.UnitIsDeadOrGhost("player") then
         local trackingId = self.activeTrackingId
         self.activeTrackingId = nil
@@ -252,7 +261,16 @@ function addon:OnPlayerResurrect()
     end
 end
 
-function addon:OnSpellsChanged()
-    self:UpdateSpells()
-    self:Publish("RELOAD_INTERFACE")
+function addon:OnPlayerRegenDisabled()
+    -- on combat start, cancel dual tracking ticker
+    if self.dualTrackingIds.primary then
+        self:CancelDualTrackingTicker()
+    end
+end
+
+function addon:OnPlayerRegenEnabled()
+    -- on combat end, restart dual tracking ticker
+    if self.dualTrackingIds.primary then
+        self:CreateDualTrackingTicker()
+    end
 end

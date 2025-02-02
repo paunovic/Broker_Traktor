@@ -10,7 +10,7 @@ function TrackingApi:BuildSpellList()
     local keywords = {"Track", "Find"}
     local tracked
 
-    for tab=1,4 do
+    for tab = 1, 4 do
         local _, _, offset, numSpells = _G.GetSpellTabInfo(tab);
 
         for i = offset + 1, offset + numSpells do

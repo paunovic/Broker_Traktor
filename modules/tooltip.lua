@@ -130,6 +130,7 @@ end
 
 function tooltip:LineScriptFactory(spellId)
     return function()
+        -- CTRL + left click to toggle auto tracking
         if _G.IsControlKeyDown() then
             local zoneText = _G.GetRealZoneText()
 
@@ -145,7 +146,8 @@ function tooltip:LineScriptFactory(spellId)
             end
         end
 
-        if _G.IsShiftKeyDown() and spellId ~=0 then
+        -- ALT + left click to toggle dual tracking
+        if _G.IsAltKeyDown() and spellId ~=0 then
             if (
                 addon.dualTrackingIds.secondary == spellId
                 or addon.dualTrackingIds.primary == spellId
