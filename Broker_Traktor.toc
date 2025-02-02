@@ -9,7 +9,8 @@
 embeds.xml
 
 traktor.lua
-TrackingApi.lua
+tracking_api.lua
+settings.lua
 
 modules\databroker.lua
 modules\tooltip.lua

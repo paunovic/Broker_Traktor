@@ -69,3 +69,9 @@ function broker.OnLeave(frame)
         addon:Publish("MOUSE_LEAVE", frame)
     end
 end
+
+function broker.OnClick(frame, ...)
+	if broker.enabledState then
+		addon:Publish("MOUSE_CLICK", frame, ...)
+	end
+end

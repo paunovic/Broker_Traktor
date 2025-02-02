@@ -1,4 +1,5 @@
 local addonName, addon = ...
+
 LibStub("AceAddon-3.0"):NewAddon(addon, addonName, "AceEvent-3.0", "LibPubSub-1.0")
 
 local _G = _G
@@ -20,6 +21,14 @@ function addon:OnEnable()
         print("|cFFBBBBBBTraktor: ".."|cFFFFFFFFInitializing...")
 
         PersistentStorage = {
+            dualTrackingInterval = 2,
+            dualTrackingDisableInCombat = true,
+            dualTrackingDisableInInstance = {
+                party = true,
+                raid = true,
+                arena = true,
+                battleground = true
+            },
             autoTracking = {}
         }
     end
@@ -29,6 +38,23 @@ function addon:OnEnable()
         PersistentStorage.autoTracking = PersistentStorage.smartTracking
         PersistentStorage.smartTracking = nil
     end
+    if not PersistentStorage.dualTrackingInterval then
+        PersistentStorage.dualTrackingInterval = 2
+    end
+    if not PersistentStorage.dualTrackingDisableInCombat then
+        PersistentStorage.dualTrackingDisableInCombat = true
+    end
+    if not PersistentStorage.dualTrackingDisableInInstance then
+        PersistentStorage.dualTrackingDisableInInstance = {
+            party = true,
+            raid = true,
+            arena = true,
+            battleground = true
+        }
+    end
+
+    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, settingsLayout, nil)
+    LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName):SetParent(InterfaceOptionsFramePanelContainer)
 
     self:RegisterEvent("SPELLS_CHANGED", "OnSpellsChanged")
     self:RegisterEvent("SKILL_LINES_CHANGED", "OnSpellsChanged")
@@ -41,11 +67,14 @@ function addon:OnEnable()
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "OnZoneChangedNewArea")
     self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnPlayerRegenDisabled")
     self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnPlayerRegenEnabled")
+
+    addon:Subscribe("MOUSE_CLICK", self, "OnClick")
 end
 
 function addon:OnDisable()
-    self:CancelDualTrackingTicker()
+    addon:Unsubscribe("MOUSE_CLICK", self, "OnClick")
     self:UnregisterAllEvents()
+    self:CancelDualTrackingTicker()
 end
 
 function addon:GetSpells()
@@ -149,7 +178,7 @@ function addon:SetTracking(spellId)
 end
 
 function addon:SetAutoTracking(zoneText, spellId)
-    PersistentStorage["autoTracking"][zoneText] = spellId
+    PersistentStorage.autoTracking[zoneText] = spellId
 
     local spellName = "Not Tracking"
     if spellId and spellId ~= 0 then
@@ -167,11 +196,11 @@ function addon:SetAutoTracking(zoneText, spellId)
 end
 
 function addon:IsAutoTracking(zoneText, spellId)
-    return PersistentStorage["autoTracking"][zoneText] == spellId
+    return PersistentStorage.autoTracking[zoneText] == spellId
 end
 
 function addon:CreateDualTrackingTicker()
-    self.dualTrackingTimer = C_Timer.NewTicker(2, function()
+    self.dualTrackingTimer = C_Timer.NewTicker(PersistentStorage.dualTrackingInterval, function()
         if not _G.UnitIsDeadOrGhost("player") then
             if self.activeTrackingId == self.dualTrackingIds.primary then
                 self:SetTracking(self.dualTrackingIds.secondary)
@@ -217,13 +246,13 @@ end
 function addon:OnZoneChangedNewArea()
     local zoneText = _G.GetRealZoneText()
 
-    -- clear dual tracking if we're in a dungeon, raid, or arena
+    -- clear dual tracking on entering instance
     local _, instanceType = _G.GetInstanceInfo()
-    if instanceType == "party" or instanceType == "raid" or instanceType == "arena" then
+    if PersistentStorage.dualTrackingDisableInInstance[instanceType:lower()] then
         self:SetDualTracking(nil, nil)
     end
 
-    local autoTrackingSpellId = PersistentStorage["autoTracking"][zoneText]
+    local autoTrackingSpellId = PersistentStorage.autoTracking[zoneText]
 
     if autoTrackingSpellId then
         -- if dual tracking is enabled, set new primary tracking
@@ -263,14 +292,24 @@ end
 
 function addon:OnPlayerRegenDisabled()
     -- on combat start, cancel dual tracking ticker
-    if self.dualTrackingIds.primary then
-        self:CancelDualTrackingTicker()
+    if PersistentStorage.dualTrackingDisableInCombat then
+        if self.dualTrackingIds.primary then
+            self:CancelDualTrackingTicker()
+        end
     end
 end
 
 function addon:OnPlayerRegenEnabled()
     -- on combat end, restart dual tracking ticker
-    if self.dualTrackingIds.primary then
-        self:CreateDualTrackingTicker()
+    if PersistentStorage.dualTrackingDisableInCombat then
+        if self.dualTrackingIds.primary then
+            self:CreateDualTrackingTicker()
+        end
+    end
+end
+
+function addon:OnClick(frame, button)
+    if button == "RightButton" then
+        _G.Settings.OpenToCategory(addonName)
     end
 end

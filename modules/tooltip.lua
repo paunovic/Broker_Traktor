@@ -106,7 +106,7 @@ function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
     local textColor = "|cFFFFFFFF" -- white
     if isSpellDualTracked then
         textColor = "|cFFFFFF00" -- yellow
-    elseif PersistentStorage["autoTracking"][zoneText] == spellId then
+    elseif PersistentStorage.autoTracking[zoneText] == spellId then
         textColor = "|cFF75FF75" -- green
     end
 
@@ -129,13 +129,13 @@ function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
 end
 
 function tooltip:LineScriptFactory(spellId)
-    return function()
+    return function(_, button)
         -- CTRL + left click to toggle auto tracking
         if _G.IsControlKeyDown() then
             local zoneText = _G.GetRealZoneText()
 
-            if PersistentStorage["autoTracking"][zoneText] ~= nil then
-                if PersistentStorage["autoTracking"][zoneText] == spellId then
+            if PersistentStorage.autoTracking[zoneText] ~= nil then
+                if PersistentStorage.autoTracking[zoneText] == spellId then
                     addon:SetAutoTracking(zoneText, nil)
                     return
                 else
