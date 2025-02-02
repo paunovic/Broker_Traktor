@@ -130,7 +130,7 @@ end
 
 function tooltip:LineScriptFactory(spellId)
     return function()
-        if _G.IsShiftKeyDown() then
+        if _G.IsControlKeyDown() then
             local zoneText = _G.GetRealZoneText()
 
             local spellName = "Not Tracking"
@@ -156,7 +156,7 @@ function tooltip:LineScriptFactory(spellId)
             end
         end
 
-        if _G.IsControlKeyDown() and spellId ~=0 then
+        if _G.IsShiftKeyDown() and spellId ~=0 then
             if (
                 addon.alternateTrackingIds.secondary == spellId
                 or addon.alternateTrackingIds.primary == spellId
