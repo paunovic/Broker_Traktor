@@ -10,6 +10,7 @@ embeds.xml
 
 traktor.lua
 tracking_api.lua
+utils.lua
 settings.lua
 
 modules\databroker.lua
