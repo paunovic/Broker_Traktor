@@ -103,11 +103,13 @@ function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
         or addon.dualTracking.secondaryId == spellId
     )
 
-    local textColor = "|cFFFFFFFF" -- white
+    local textColor = PersistentStorage.colors.notTracking
     if isSpellDualTracked then
-        textColor = "|cFFFFFF00" -- yellow
+        textColor = PersistentStorage.colors.dualTracking
     elseif PersistentStorage.autoTracking[zoneText] == spellId then
-        textColor = "|cFF75FF75" -- green
+        textColor = PersistentStorage.colors.autoTracking
+    elseif addon.activeTrackingId == spellId then
+        textColor = PersistentStorage.colors.activeTracking
     end
 
     local radio = "|T:0|t"
@@ -123,7 +125,7 @@ function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
         self.tip:SetCell(lineIndex, 2, "|T"..spellIcon..":14|t")
     end
 
-    self.tip:SetCell(lineIndex, 3, textColor..spellName)
+    self.tip:SetCell(lineIndex, 3, Utils:ColorToString(textColor)..spellName)
 
     self.tip:SetLineScript(lineIndex, "OnMouseUp", self:LineScriptFactory(spellId))
 end

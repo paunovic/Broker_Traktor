@@ -15,29 +15,20 @@ function addon:OnInitialize()
         ticker = nil
     }
     self.cooldownTimer = nil
-end
 
-function addon:OnEnable()
     -- initialize on the first run
     if not PersistentStorage then
-        print("|cFFFFFF00[Traktor] ".."|cFFFFFF00Initializing...")
+        Utils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Initializing...")
         PersistentStorage = {}
     end
 
-    Utils:SetDefault(PersistentStorage, "autoTracking", {})
-    Utils:SetDefault(PersistentStorage, "dualTracking.interval", 2)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableInCombat", true)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileResting", true)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileStationary", true)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableInInstance", {
-        party = true,
-        raid = true,
-        arena = true,
-        battleground = true
-    })
+    self:SetPersistentStorageDefaults(false)
+end
 
+function addon:OnEnable()
     LibStub("AceConfig-3.0"):RegisterOptionsTable("Broker: Traktor", settingsLayout, nil)
-    LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker: Traktor"):SetParent(InterfaceOptionsFramePanelContainer)
+    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker: Traktor")
+    self.optionsFrame:SetParent(InterfaceOptionsFramePanelContainer)
 
     self:RegisterEvent("SPELLS_CHANGED", "OnSpellsChanged")
     self:RegisterEvent("SKILL_LINES_CHANGED", "OnSpellsChanged")
@@ -60,6 +51,28 @@ function addon:OnDisable()
     addon:Unsubscribe("MOUSE_CLICK", self, "OnClick")
     self:UnregisterAllEvents()
     self:CancelDualTrackingTicker()
+end
+
+function addon:SetPersistentStorageDefaults()
+    Utils:SetDefault(PersistentStorage, "autoTracking", {})
+
+    Utils:SetDefault(PersistentStorage, "dualTracking.interval", 1.5)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableInCombat", true)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileResting", true)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileStationary", true)
+    Utils:SetDefault(PersistentStorage, "dualTracking.disableInInstance", {
+        party = true,
+        raid = true,
+        arena = true,
+        battleground = true
+    })
+
+    Utils:SetDefault(PersistentStorage, "colors.notTracking", {r = 1.00, g = 1.00, b = 1.00, a = 1.00})
+    Utils:SetDefault(PersistentStorage, "colors.activeTracking", {r = 1.00, g = 1.00, b = 1.00, a = 1.00})
+    Utils:SetDefault(PersistentStorage, "colors.autoTracking", {r = 0.46, g = 1.00, b = 0.46, a = 1.00})
+    Utils:SetDefault(PersistentStorage, "colors.dualTracking", {r = 1.00, g = 1.00, b = 0.00, a = 1.00})
+
+    Utils:SetDefault(PersistentStorage, "showChatMessages", true)
 end
 
 function addon:GetSpells()
@@ -173,10 +186,11 @@ function addon:SetAutoTracking(zoneText, spellId)
     addon:Publish("REDRAW_INTERFACE")
 
     if not spellId then
-        print("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
+        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
     else
-        print("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFF00FF00on|cFFFFFFFF for "..
-              "|cFFFCBA03"..zoneText.."|cFFFFFFFF (|cFF75FF75"..spellName.."|cFFFFFFFF)")
+        -- use PersistentStorage.colors.autoTracking as a spell color
+        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText..
+              "|cFFFFFFFF ("..Utils:ColorToString(PersistentStorage.colors.autoTracking)..spellName.."|cFFFFFFFF)")
     end
 end
 
@@ -186,7 +200,6 @@ end
 
 function addon:CreateDualTrackingTicker()
     if self.dualTracking.ticker then
-        print("|cFFFF3333[Traktor]|cFFFFFFFF |cFFFF0000Dual tracking ticker already exists")
         return
     end
 
@@ -235,12 +248,12 @@ function addon:SetDualTracking(primarySpellId, secondarySpellId)
 
     if self.dualTracking.enabled then
         self:CreateDualTrackingTicker()
-        print("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFF00FF00on|cFFFFFFFF "..
-              "(|cFFFFFF00"..C_Spell.GetSpellName(self.dualTracking.primaryId).."|cFFFFFFFF / "..
-              "|cFFFFFF00"..C_Spell.GetSpellName(self.dualTracking.secondaryId).."|cFFFFFFFF)")
+        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFF00FF00on|cFFFFFFFF "..
+              "("..Utils:ColorToString(PersistentStorage.colors.dualTracking)..C_Spell.GetSpellName(self.dualTracking.primaryId).."|cFFFFFFFF / "..
+              Utils:ColorToString(PersistentStorage.colors.dualTracking)..C_Spell.GetSpellName(self.dualTracking.secondaryId).."|cFFFFFFFF)")
     else
         self:SetTracking(originalPrimaryId)
-        print("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFFFF3333off")
+        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFFFF3333off")
    end
 end
 

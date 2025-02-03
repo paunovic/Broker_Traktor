@@ -2,7 +2,6 @@ local addonName, addon = ...
 local broker = addon:NewModule("DataBroker")
 
 local _G = _G
-local ICON_ABILITY_TRACKING = 132328
 
 function broker:OnInitialize()
     self.type = "data source"
@@ -23,24 +22,24 @@ function broker:OnDisable()
 end
 
 function broker:OnTrackingChanged()
-    local textColor = "|cFFFFFFFF" -- white
+    local textColor = {r = 1, g = 1, b = 1, a = 1}  -- default color for databroker label is white
     if (
         addon.activeTrackingId
         and (
             addon.activeTrackingId == addon.dualTracking.primaryId
-            or addon.activeTrackingId == addon.dualTracking.secondaryid
+            or addon.activeTrackingId == addon.dualTracking.secondaryId
         )
     ) then
-        textColor = "|cFFFFFF00" -- yellow
+        textColor = PersistentStorage.colors.dualTracking
     elseif addon:IsAutoTracking(_G.GetRealZoneText(), addon.activeTrackingId) then
-        textColor = "|cFF75FF75" -- green
+        textColor = PersistentStorage.colors.autoTracking
     end
 
     if not addon.activeTrackingId or addon.activeTrackingId == 0 then
-        self:SetValue(textColor.."Not Tracking", ICON_ABILITY_TRACKING)
+        self:SetValue(Utils:ColorToString(textColor).."Not Tracking", nil)
     else
         local spellName, spellIcon, _ = TrackingApi:GetTrackingInfo(addon.activeTrackingId)
-        self:SetValue(textColor..spellName, spellIcon)
+        self:SetValue(Utils:ColorToString(textColor)..spellName, spellIcon)
     end
 end
 
