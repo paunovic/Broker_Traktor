@@ -6,6 +6,7 @@ files: set[str] = {
     "Broker_Traktor.toc",
     "traktor.lua",
     "tracking_api.lua",
+    "utils.lua",
     "settings.lua",
     "embeds.xml",
     "modules/**",
