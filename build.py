@@ -3,13 +3,6 @@ import zipfile
 from pathlib import Path
 
 files: set[str] = {
-    "Broker_Traktor.toc",
-    "traktor.lua",
-    "tracking_api.lua",
-    "utils.lua",
-    "settings.lua",
-    "embeds.xml",
-    "modules/**",
     "lib/**",
 }
 
@@ -17,9 +10,14 @@ if __name__ == "__main__":
     for line in Path("Broker_Traktor.toc").read_text().splitlines():
         if line.startswith("## Version: "):
             version: str = line[11:].strip()
-            break
-    else:
+        if line.strip() and not line.startswith("##"):
+            files.add(line.strip())
+
+    if not version:
         raise Exception("Version not found in Broker_Traktor.toc")
+
+    if not files:
+        raise Exception("No files found in Broker_Traktor.toc")
 
     version = f"v{version}"
 
