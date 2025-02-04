@@ -242,8 +242,11 @@ settingsLayout = {
             },
         },
         labelHelp = {
-            name = "Ctrl + Click to enable auto tracking for a zone.\nAlt + Click to enable dual tracking.",
-            order = 3.3,
+            name = (
+                "Ctrl + Click on the tooltip to enable auto tracking for the current zone.\n"..
+                "Alt + Click on the tooltip to enable dual tracking."
+            ),
+            order = 4,
             type = "description",
             fontSize = "medium",
         },

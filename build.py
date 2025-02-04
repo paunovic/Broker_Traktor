@@ -3,6 +3,7 @@ import zipfile
 from pathlib import Path
 
 files: set[str] = {
+    "Broker_Traktor.toc",
     "lib/**",
 }
 

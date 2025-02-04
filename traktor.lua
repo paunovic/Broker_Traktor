@@ -22,13 +22,12 @@ function addon:OnInitialize()
         PersistentStorage = {}
     end
 
-    self:SetPersistentStorageDefaults(false)
+    self:SetPersistentStorageDefaults()
 end
 
 function addon:OnEnable()
     LibStub("AceConfig-3.0"):RegisterOptionsTable("Broker: Traktor", settingsLayout, nil)
-    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker: Traktor")
-    self.optionsFrame:SetParent(InterfaceOptionsFramePanelContainer)
+    LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Broker: Traktor"):SetParent(InterfaceOptionsFramePanelContainer)
 
     self:RegisterEvent("SPELLS_CHANGED", "OnSpellsChanged")
     self:RegisterEvent("SKILL_LINES_CHANGED", "OnSpellsChanged")
