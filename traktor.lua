@@ -16,13 +16,18 @@ function addon:OnInitialize()
     }
     self.cooldownTimer = nil
 
-    -- initialize on the first run
-    if not PersistentStorage then
-        Utils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Initializing...")
-        PersistentStorage = {}
+    if not BrokerTraktorStorage then
+        -- XXX: clean this up in next version
+        if PersistentStorage then
+            BrokerTraktorStorage = PersistentStorage
+            PersistentStorage = nil
+        else
+            TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Initializing...")
+            BrokerTraktorStorage = {}
+        end
     end
 
-    self:SetPersistentStorageDefaults()
+    self:SetBrokerTraktorStorageDefaults()
 end
 
 function addon:OnEnable()
@@ -52,26 +57,26 @@ function addon:OnDisable()
     self:CancelDualTrackingTicker()
 end
 
-function addon:SetPersistentStorageDefaults()
-    Utils:SetDefault(PersistentStorage, "autoTracking", {})
+function addon:SetBrokerTraktorStorageDefaults()
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "autoTracking", {})
 
-    Utils:SetDefault(PersistentStorage, "dualTracking.interval", 1.5)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableInCombat", true)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileResting", true)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableWhileStationary", true)
-    Utils:SetDefault(PersistentStorage, "dualTracking.disableInInstance", {
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "dualTracking.interval", 1.5)
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "dualTracking.disableInCombat", true)
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "dualTracking.disableWhileResting", true)
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "dualTracking.disableWhileStationary", true)
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "dualTracking.disableInInstance", {
         party = true,
         raid = true,
         arena = true,
         battleground = true
     })
 
-    Utils:SetDefault(PersistentStorage, "colors.notTracking", {r = 1.00, g = 1.00, b = 1.00, a = 1.00})
-    Utils:SetDefault(PersistentStorage, "colors.activeTracking", {r = 1.00, g = 1.00, b = 1.00, a = 1.00})
-    Utils:SetDefault(PersistentStorage, "colors.autoTracking", {r = 0.46, g = 1.00, b = 0.46, a = 1.00})
-    Utils:SetDefault(PersistentStorage, "colors.dualTracking", {r = 1.00, g = 1.00, b = 0.00, a = 1.00})
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "colors.notTracking", {r = 1.00, g = 1.00, b = 1.00, a = 1.00})
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "colors.activeTracking", {r = 1.00, g = 1.00, b = 1.00, a = 1.00})
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "colors.autoTracking", {r = 0.46, g = 1.00, b = 0.46, a = 1.00})
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "colors.dualTracking", {r = 1.00, g = 1.00, b = 0.00, a = 1.00})
 
-    Utils:SetDefault(PersistentStorage, "showChatMessages", true)
+    TraktorUtils:SetDefault(BrokerTraktorStorage, "showChatMessages", true)
 end
 
 function addon:GetSpells()
@@ -175,7 +180,7 @@ function addon:SetTracking(spellId)
 end
 
 function addon:SetAutoTracking(zoneText, spellId)
-    PersistentStorage.autoTracking[zoneText] = spellId
+    BrokerTraktorStorage.autoTracking[zoneText] = spellId
 
     local spellName = "Not Tracking"
     if spellId and spellId ~= 0 then
@@ -185,16 +190,16 @@ function addon:SetAutoTracking(zoneText, spellId)
     addon:Publish("REDRAW_INTERFACE")
 
     if not spellId then
-        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
+        TraktorUtils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFFFF3333off|cFFFFFFFF for |cFFFCBA03"..zoneText)
     else
-        -- use PersistentStorage.colors.autoTracking as a spell color
-        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText..
-              "|cFFFFFFFF ("..Utils:ColorToString(PersistentStorage.colors.autoTracking)..spellName.."|cFFFFFFFF)")
+        -- use BrokerTraktorStorage.colors.autoTracking as a spell color
+        TraktorUtils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF auto tracking |cFF00FF00on|cFFFFFFFF for |cFFFCBA03"..zoneText..
+              "|cFFFFFFFF ("..TraktorUtils:ColorToString(BrokerTraktorStorage.colors.autoTracking)..spellName.."|cFFFFFFFF)")
     end
 end
 
 function addon:IsAutoTracking(zoneText, spellId)
-    return PersistentStorage.autoTracking[zoneText] == spellId
+    return BrokerTraktorStorage.autoTracking[zoneText] == spellId
 end
 
 function addon:CreateDualTrackingTicker()
@@ -202,14 +207,14 @@ function addon:CreateDualTrackingTicker()
         return
     end
 
-    self.dualTracking.ticker = C_Timer.NewTicker(PersistentStorage.dualTracking.interval, function()
+    self.dualTracking.ticker = C_Timer.NewTicker(BrokerTraktorStorage.dualTracking.interval, function()
         -- handle disable while resting setting and skip current tick
-        if PersistentStorage.dualTracking.disableWhileResting and _G.IsResting() then
+        if BrokerTraktorStorage.dualTracking.disableWhileResting and _G.IsResting() then
             return
         end
 
         -- handle disable while stationary setting and skip current tick
-        if PersistentStorage.dualTracking.disableWhileStationary and self.isStationary then
+        if BrokerTraktorStorage.dualTracking.disableWhileStationary and self.isStationary then
             return
         end
 
@@ -247,12 +252,12 @@ function addon:SetDualTracking(primarySpellId, secondarySpellId)
 
     if self.dualTracking.enabled then
         self:CreateDualTrackingTicker()
-        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFF00FF00on|cFFFFFFFF "..
-              "("..Utils:ColorToString(PersistentStorage.colors.dualTracking)..C_Spell.GetSpellName(self.dualTracking.primaryId).."|cFFFFFFFF / "..
-              Utils:ColorToString(PersistentStorage.colors.dualTracking)..C_Spell.GetSpellName(self.dualTracking.secondaryId).."|cFFFFFFFF)")
+        TraktorUtils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFF00FF00on|cFFFFFFFF "..
+              "("..TraktorUtils:ColorToString(BrokerTraktorStorage.colors.dualTracking)..C_Spell.GetSpellName(self.dualTracking.primaryId).."|cFFFFFFFF / "..
+              TraktorUtils:ColorToString(BrokerTraktorStorage.colors.dualTracking)..C_Spell.GetSpellName(self.dualTracking.secondaryId).."|cFFFFFFFF)")
     else
         self:SetTracking(originalPrimaryId)
-        Utils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFFFF3333off")
+        TraktorUtils:ChatMessage("|cFFFFFF00[Traktor]|cFFFFFFFF dual tracking |cFFFF3333off")
    end
 end
 
@@ -267,11 +272,11 @@ function addon:OnZoneChangedNewArea()
 
     -- clear dual tracking on entering instance
     local _, instanceType = _G.GetInstanceInfo()
-    if PersistentStorage.dualTracking.disableInInstance[instanceType:lower()] then
+    if BrokerTraktorStorage.dualTracking.disableInInstance[instanceType:lower()] then
         self:SetDualTracking(nil, nil)
     end
 
-    local autoTrackingSpellId = PersistentStorage.autoTracking[zoneText]
+    local autoTrackingSpellId = BrokerTraktorStorage.autoTracking[zoneText]
 
     if autoTrackingSpellId then
         -- if dual tracking is enabled, set new primary tracking
@@ -311,14 +316,14 @@ end
 
 function addon:OnPlayerRegenDisabled()
     -- handle disable in combat setting, on combat start, pause dual tracking ticker
-    if self.dualTracking.enabled and PersistentStorage.dualTracking.disableInCombat then
+    if self.dualTracking.enabled and BrokerTraktorStorage.dualTracking.disableInCombat then
         self:CancelDualTrackingTicker()
     end
 end
 
 function addon:OnPlayerRegenEnabled()
     -- handle disable in combat setting, on combat end, restart dual tracking ticker
-    if self.dualTracking.enabled and PersistentStorage.dualTracking.disableInCombat then
+    if self.dualTracking.enabled and BrokerTraktorStorage.dualTracking.disableInCombat then
         self:CreateDualTrackingTicker()
     end
 end

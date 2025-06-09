@@ -21,14 +21,14 @@ settingsLayout = {
             step = 0.1,
             width = "full",
             set = function(info, value)
-                PersistentStorage.dualTracking.interval = value
+                BrokerTraktorStorage.dualTracking.interval = value
                 if addon.dualTrackingTimer then
                     addon:CancelDualTrackingTicker()
                     addon:CreateDualTrackingTicker()
                 end
             end,
             get = function(info)
-                return PersistentStorage.dualTracking.interval
+                return BrokerTraktorStorage.dualTracking.interval
             end
         },
         dualTrackingDisableInCombat = {
@@ -38,10 +38,10 @@ settingsLayout = {
             type = "toggle",
             width = "double",
             set = function(info, value)
-                PersistentStorage.dualTracking.disableInCombat = value
+                BrokerTraktorStorage.dualTracking.disableInCombat = value
             end,
             get = function(info)
-                return PersistentStorage.dualTracking.disableInCombat
+                return BrokerTraktorStorage.dualTracking.disableInCombat
             end
         },
         dualTrackingDisableWhileResting = {
@@ -51,10 +51,10 @@ settingsLayout = {
             type = "toggle",
             width = "double",
             set = function(info, value)
-                PersistentStorage.dualTracking.disableWhileResting = value
+                BrokerTraktorStorage.dualTracking.disableWhileResting = value
             end,
             get = function(info)
-                return PersistentStorage.dualTracking.disableWhileResting
+                return BrokerTraktorStorage.dualTracking.disableWhileResting
             end
         },
         dualTrackingDisableWhileStationary = {
@@ -64,10 +64,10 @@ settingsLayout = {
             type = "toggle",
             width = "double",
             set = function(info, value)
-                PersistentStorage.dualTracking.disableWhileStationary = value
+                BrokerTraktorStorage.dualTracking.disableWhileStationary = value
             end,
             get = function(info)
-                return PersistentStorage.dualTracking.disableWhileStationary
+                return BrokerTraktorStorage.dualTracking.disableWhileStationary
             end
         },
         dualTrackingDisableInInstance = {
@@ -81,10 +81,10 @@ settingsLayout = {
                 battleground = "Battleground"
             },
             set = function(info, key, value)
-                PersistentStorage.dualTracking.disableInInstance[key] = value
+                BrokerTraktorStorage.dualTracking.disableInInstance[key] = value
             end,
             get = function(info, key)
-                return PersistentStorage.dualTracking.disableInInstance[key]
+                return BrokerTraktorStorage.dualTracking.disableInInstance[key]
             end
         },
         colorsHeader = {
@@ -99,14 +99,14 @@ settingsLayout = {
             type = "color",
             hasAlpha = true,
             set = function(info, r, g, b, a)
-                local c = PersistentStorage.colors.notTracking
+                local c = BrokerTraktorStorage.colors.notTracking
                 c.r = r
                 c.g = g
                 c.b = b
                 c.a = a
             end,
             get = function(info)
-                local c = PersistentStorage.colors.notTracking
+                local c = BrokerTraktorStorage.colors.notTracking
                 return c.r, c.g, c.b, c.a
             end
         },
@@ -117,14 +117,14 @@ settingsLayout = {
             type = "color",
             hasAlpha = true,
             set = function(info, r, g, b, a)
-                local c = PersistentStorage.colors.activeTracking
+                local c = BrokerTraktorStorage.colors.activeTracking
                 c.r = r
                 c.g = g
                 c.b = b
                 c.a = a
             end,
             get = function(info)
-                local c = PersistentStorage.colors.activeTracking
+                local c = BrokerTraktorStorage.colors.activeTracking
                 return c.r, c.g, c.b, c.a
             end
         },
@@ -135,14 +135,14 @@ settingsLayout = {
             type = "color",
             hasAlpha = true,
             set = function(info, r, g, b, a)
-                local c = PersistentStorage.colors.autoTracking
+                local c = BrokerTraktorStorage.colors.autoTracking
                 c.r = r
                 c.g = g
                 c.b = b
                 c.a = a
             end,
             get = function(info)
-                local c = PersistentStorage.colors.autoTracking
+                local c = BrokerTraktorStorage.colors.autoTracking
                 return c.r, c.g, c.b, c.a
             end
         },
@@ -153,14 +153,14 @@ settingsLayout = {
             type = "color",
             hasAlpha = true,
             set = function(info, r, g, b, a)
-                local c = PersistentStorage.colors.dualTracking
+                local c = BrokerTraktorStorage.colors.dualTracking
                 c.r = r
                 c.g = g
                 c.b = b
                 c.a = a
             end,
             get = function(info)
-                local c = PersistentStorage.colors.dualTracking
+                local c = BrokerTraktorStorage.colors.dualTracking
                 return c.r, c.g, c.b, c.a
             end
         },
@@ -176,10 +176,10 @@ settingsLayout = {
             type = "toggle",
             width = "double",
             set = function(info, value)
-                PersistentStorage.showChatMessages = value
+                BrokerTraktorStorage.showChatMessages = value
             end,
             get = function(info)
-                return PersistentStorage.showChatMessages
+                return BrokerTraktorStorage.showChatMessages
             end
         },
         resetButtonGroup = {
@@ -200,7 +200,7 @@ settingsLayout = {
                             button1 = "Yes",
                             button2 = "No",
                             OnAccept = function()
-                                PersistentStorage.autoTracking = {}
+                                BrokerTraktorStorage.autoTracking = {}
                                 LibStub("AceConfigRegistry-3.0"):NotifyChange("Broker: Traktor")
                             end,
                             timeout = 0,
@@ -224,10 +224,10 @@ settingsLayout = {
                             button1 = "Yes",
                             button2 = "No",
                             OnAccept = function()
-                                PersistentStorage = {
-                                    autoTracking = PersistentStorage.autoTracking,
+                                BrokerTraktorStorage = {
+                                    autoTracking = BrokerTraktorStorage.autoTracking,
                                 }
-                                addon:SetPersistentStorageDefaults()
+                                addon:SetBrokerTraktorStorageDefaults()
                                 LibStub("AceConfigRegistry-3.0"):NotifyChange("Broker: Traktor")
                             end,
                             timeout = 0,

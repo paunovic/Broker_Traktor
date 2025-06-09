@@ -30,16 +30,16 @@ function broker:OnTrackingChanged()
             or addon.activeTrackingId == addon.dualTracking.secondaryId
         )
     ) then
-        textColor = PersistentStorage.colors.dualTracking
+        textColor = BrokerTraktorStorage.colors.dualTracking
     elseif addon:IsAutoTracking(_G.GetRealZoneText(), addon.activeTrackingId) then
-        textColor = PersistentStorage.colors.autoTracking
+        textColor = BrokerTraktorStorage.colors.autoTracking
     end
 
     if not addon.activeTrackingId or addon.activeTrackingId == 0 then
-        self:SetValue(Utils:ColorToString(textColor).."Not Tracking", nil)
+        self:SetValue(TraktorUtils:ColorToString(textColor).."Not Tracking", nil)
     else
         local spellName, spellIcon, _ = TrackingApi:GetTrackingInfo(addon.activeTrackingId)
-        self:SetValue(Utils:ColorToString(textColor)..spellName, spellIcon)
+        self:SetValue(TraktorUtils:ColorToString(textColor)..spellName, spellIcon)
     end
 end
 

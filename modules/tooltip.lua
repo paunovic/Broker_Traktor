@@ -103,13 +103,13 @@ function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
         or addon.dualTracking.secondaryId == spellId
     )
 
-    local textColor = PersistentStorage.colors.notTracking
+    local textColor = BrokerTraktorStorage.colors.notTracking
     if isSpellDualTracked then
-        textColor = PersistentStorage.colors.dualTracking
-    elseif PersistentStorage.autoTracking[zoneText] == spellId then
-        textColor = PersistentStorage.colors.autoTracking
+        textColor = BrokerTraktorStorage.colors.dualTracking
+    elseif BrokerTraktorStorage.autoTracking[zoneText] == spellId then
+        textColor = BrokerTraktorStorage.colors.autoTracking
     elseif addon.activeTrackingId == spellId then
-        textColor = PersistentStorage.colors.activeTracking
+        textColor = BrokerTraktorStorage.colors.activeTracking
     end
 
     local radio = "|T:0|t"
@@ -125,7 +125,7 @@ function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
         self.tip:SetCell(lineIndex, 2, "|T"..spellIcon..":14|t")
     end
 
-    self.tip:SetCell(lineIndex, 3, Utils:ColorToString(textColor)..spellName)
+    self.tip:SetCell(lineIndex, 3, TraktorUtils:ColorToString(textColor)..spellName)
 
     self.tip:SetLineScript(lineIndex, "OnMouseUp", self:LineScriptFactory(spellId))
 end
@@ -136,8 +136,8 @@ function tooltip:LineScriptFactory(spellId)
         if _G.IsControlKeyDown() then
             local zoneText = _G.GetRealZoneText()
 
-            if PersistentStorage.autoTracking[zoneText] ~= nil then
-                if PersistentStorage.autoTracking[zoneText] == spellId then
+            if BrokerTraktorStorage.autoTracking[zoneText] ~= nil then
+                if BrokerTraktorStorage.autoTracking[zoneText] == spellId then
                     addon:SetAutoTracking(zoneText, nil)
                     return
                 else
