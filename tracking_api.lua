@@ -54,11 +54,9 @@ end
 
 function TrackingApi:SetTracking(id, _)
     local spell = self.SpellInfo[id]
-
     if not spell then
         error("Invalid spell ID: " .. id)
     end
-
     _G.CastSpellByName(spell["name"])
 end
 
