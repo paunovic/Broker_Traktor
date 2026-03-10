@@ -163,6 +163,7 @@ function addon:SetTracking(spellId)
         -- if no tracking is selected, cancel dual tracking as well
         addon:SetDualTracking(nil, nil)
         _G.CancelTrackingBuff()
+        TrackingApi:ClearAllMinimapTracking()
         self.activeTrackingId = nil
         self:Publish("TRACKING_CHANGED")
     elseif spellId ~= TrackingApi:GetActiveTrackingId() then

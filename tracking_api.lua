@@ -118,3 +118,9 @@ end
 function TrackingApi:SetMinimapTracking(index, active)
     C_Minimap.SetTracking(index, active)
 end
+
+function TrackingApi:ClearAllMinimapTracking()
+    for i = 1, C_Minimap.GetNumTrackingTypes() do
+        C_Minimap.SetTracking(i, false)
+    end
+end
