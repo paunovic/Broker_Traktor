@@ -17,14 +17,8 @@ function addon:OnInitialize()
     self.cooldownTimer = nil
 
     if not BrokerTraktorStorage then
-        -- XXX: clean this up in next version
-        if PersistentStorage then
-            BrokerTraktorStorage = PersistentStorage
-            PersistentStorage = nil
-        else
-            TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Initializing...")
-            BrokerTraktorStorage = {}
-        end
+        TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Initializing...")
+        BrokerTraktorStorage = {}
     end
 
     self:SetBrokerTraktorStorageDefaults()
@@ -49,6 +43,8 @@ function addon:OnEnable()
     self:RegisterEvent("PLAYER_STARTED_MOVING", "OnPlayerStartedMoving")
 
     addon:Subscribe("MOUSE_CLICK", self, "OnClick")
+
+    TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Enabled")
 end
 
 function addon:OnDisable()
@@ -111,6 +107,7 @@ function addon:UpdateSpells()
         2383, -- Find Herbs
         2580, -- Find Minerals
         2481, -- Find Treasure (Dwarf)
+        43308, -- Find Fish
         5225, -- Track Humanoids (Druid)
         5500, -- Sense Demons (Warlock)
         5502, -- Sense Undead (Paladin)

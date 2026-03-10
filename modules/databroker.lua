@@ -1,7 +1,9 @@
 local addonName, addon = ...
-local broker = addon:NewModule("DataBroker")
+local broker = addon:NewModule("TraktorDataBroker")
 
 local _G = _G
+
+TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Loading Data Broker module...")
 
 function broker:OnInitialize()
     self.type = "data source"
@@ -10,6 +12,7 @@ function broker:OnInitialize()
 end
 
 function broker:OnEnable()
+    TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Enabled2")
     addon:Subscribe("TRACKING_CHANGED", self, "OnTrackingChanged")
     addon:Subscribe("RELOAD_INTERFACE", self, "ReloadInterface")
     addon:Subscribe("REDRAW_INTERFACE", self, "RedrawInterface")
@@ -22,6 +25,7 @@ function broker:OnDisable()
 end
 
 function broker:OnTrackingChanged()
+    TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00 Tracking changed: "..(addon.activeTrackingId or "none"))
     local textColor = {r = 1, g = 1, b = 1, a = 1}  -- default color for databroker label is white
     if (
         addon.activeTrackingId

@@ -6,11 +6,12 @@ TrackingApi = {}
 TrackingApi.SpellInfo = {}
 TrackingApi.SpellIcons = {}
 
+
 function TrackingApi:BuildSpellList()
     local keywords = {"Track", "Find"}
     local tracked
 
-    for tab = 1, 4 do
+    for tab = 1, _G.GetNumSpellTabs() do
         local _, _, offset, numSpells = _G.GetSpellTabInfo(tab);
 
         for i = offset + 1, offset + numSpells do
@@ -37,15 +38,18 @@ function TrackingApi:BuildSpellList()
 end
 
 function TrackingApi:GetCurrentTracking()
-    local icon = _G.GetTrackingTexture()
-
-    if not icon then
-        return
+    for i = 1, C_Minimap.GetNumTrackingTypes() do
+        local trackingInfo = C_Minimap.GetTrackingInfo(i)
+        if trackingInfo.active then
+            for spellId, spellInfo in pairs(self.SpellInfo) do
+                if spellInfo.name == trackingInfo.name then
+                    return spellId, spellInfo.name, spellInfo.icon
+                end
+            end
+        end
     end
 
-    local spellId = self.SpellIcons[icon]
-    local spell = self.SpellInfo[spellId]
-    return spellId, spell.name, spell.icon
+    return nil
 end
 
 function TrackingApi:SetTracking(id, _)
@@ -60,6 +64,10 @@ end
 
 function TrackingApi:IsTracking(spellId)
     local currentId, _, _ = TrackingApi:GetCurrentTracking()
+
+    if not currentId then
+        return false
+    end
 
     if currentId == spellId then
         return true
