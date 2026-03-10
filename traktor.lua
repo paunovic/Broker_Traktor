@@ -51,6 +51,7 @@ function addon:OnDisable()
     addon:Unsubscribe("MOUSE_CLICK", self, "OnClick")
     self:UnregisterAllEvents()
     self:CancelDualTrackingTicker()
+    TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Disabled")
 end
 
 function addon:SetBrokerTraktorStorageDefaults()

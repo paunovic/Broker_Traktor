@@ -1,11 +1,12 @@
 local addonName, addon = ...
-local tooltip = addon:NewModule("Tooltip")
+local tooltip = addon:NewModule("TraktorTooltip")
 
 local _G = _G
 
 local LibQTip = LibStub("LibQTip-1.0")
 
 function tooltip:OnEnable()
+    TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Enabled tooltip module")
     addon:Subscribe("MOUSE_ENTER", self, "Show")
     addon:Subscribe("TRACKING_CHANGED", self, "RedrawInterface")
     addon:Subscribe("ZONE_CHANGED_NEW_AREA", self, "RedrawInterface")
