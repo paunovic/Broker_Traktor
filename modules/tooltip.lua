@@ -6,7 +6,6 @@ local _G = _G
 local LibQTip = LibStub("LibQTip-1.0")
 
 function tooltip:OnEnable()
-    TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Enabled tooltip module")
     addon:Subscribe("MOUSE_ENTER", self, "Show")
     addon:Subscribe("TRACKING_CHANGED", self, "RedrawInterface")
     addon:Subscribe("ZONE_CHANGED_NEW_AREA", self, "RedrawInterface")
@@ -96,6 +95,27 @@ function tooltip:Redraw(reload)
 
         self:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
     end
+
+    -- separator
+    if reload then
+        lineIndex = self.tip:AddLine()
+    else
+        lineIndex = lineIndex + 1
+    end
+    self.tip:SetCell(lineIndex, 1, "")
+    self.tip:SetCell(lineIndex, 2, "")
+    self.tip:SetCell(lineIndex, 3, " ")
+
+    -- minimap tracking types (independently toggleable)
+    local minimapTypes = TrackingApi:GetMinimapTrackingTypes()
+    for i = 1, #minimapTypes do
+        if reload then
+            lineIndex = self.tip:AddLine()
+        else
+            lineIndex = lineIndex + 1
+        end
+        self:SetMinimapTrackingLine(lineIndex, minimapTypes[i])
+    end
 end
 
 function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
@@ -129,6 +149,28 @@ function tooltip:SetLine(lineIndex, spellId, spellIcon, spellName, zoneText)
     self.tip:SetCell(lineIndex, 3, TraktorUtils:ColorToString(textColor)..spellName)
 
     self.tip:SetLineScript(lineIndex, "OnMouseUp", self:LineScriptFactory(spellId))
+end
+
+function tooltip:SetMinimapTrackingLine(lineIndex, trackingType)
+    local checkbox = "|T:0|t"
+    if trackingType.active then
+        checkbox = "|TInterface\\Buttons\\UI-CheckBox-Check:8:8|t"
+    end
+
+    self.tip:SetCell(lineIndex, 1, checkbox)
+
+    if trackingType.texture then
+        self.tip:SetCell(lineIndex, 2, "|T"..trackingType.texture..":14|t")
+    else
+        self.tip:SetCell(lineIndex, 2, "")
+    end
+
+    self.tip:SetCell(lineIndex, 3, "|cFFFFFFFF"..trackingType.name)
+
+    self.tip:SetLineScript(lineIndex, "OnMouseUp", function()
+        TrackingApi:SetMinimapTracking(trackingType.index, not trackingType.active)
+        addon:Publish("REDRAW_INTERFACE")
+    end)
 end
 
 function tooltip:LineScriptFactory(spellId)

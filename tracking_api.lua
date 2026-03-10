@@ -90,3 +90,31 @@ function TrackingApi:GetActiveTrackingId()
 
     return 0
 end
+
+function TrackingApi:GetMinimapTrackingTypes()
+    local trackingTypes = {}
+    for i = 1, C_Minimap.GetNumTrackingTypes() do
+        local trackingInfo = C_Minimap.GetTrackingInfo(i)
+        -- skip spell-based tracking (already handled by spell section)
+        local isSpellTracking = false
+        for _, spellInfo in pairs(self.SpellInfo) do
+            if spellInfo.name == trackingInfo.name then
+                isSpellTracking = true
+                break
+            end
+        end
+        if not isSpellTracking then
+            table.insert(trackingTypes, {
+                index = i,
+                name = trackingInfo.name,
+                texture = trackingInfo.texture,
+                active = trackingInfo.active,
+            })
+        end
+    end
+    return trackingTypes
+end
+
+function TrackingApi:SetMinimapTracking(index, active)
+    C_Minimap.SetTracking(index, active)
+end

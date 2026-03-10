@@ -43,8 +43,6 @@ function addon:OnEnable()
     self:RegisterEvent("PLAYER_STARTED_MOVING", "OnPlayerStartedMoving")
 
     addon:Subscribe("MOUSE_CLICK", self, "OnClick")
-
-    TraktorUtils:ChatMessage("|cFFFFFF00[Traktor] ".."|cFFFFFF00Enabled")
 end
 
 function addon:OnDisable()
@@ -297,6 +295,7 @@ end
 
 function addon:OnMinimapUpdateTracking()
     self:CheckTracking()
+    self:Publish("REDRAW_INTERFACE")
 end
 
 function addon:OnSpellsChanged()
